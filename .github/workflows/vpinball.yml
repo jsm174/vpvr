@@ -16,7 +16,7 @@ jobs:
     runs-on: windows-latest
     steps:
       - id: cache
-        uses: actions/cache@v2
+        uses: actions/cache@v3
         with:
           path: DXSDK
           key: cache-dxsdk
@@ -37,7 +37,7 @@ jobs:
       sha7: ${{ steps.version.outputs.sha7 }}
       tag: ${{ steps.version.outputs.tag }}
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
         with:
           fetch-depth: 0
       - id: version
@@ -51,6 +51,7 @@ jobs:
           echo "::set-output name=revision::${REVISION}"
           echo "::set-output name=sha7::${SHA7}"
           echo "::set-output name=tag::${TAG}"
+
   build:
     name: Build VPinballX_GL-${{ matrix.config }}-${{ matrix.platform }}
     runs-on: windows-2022
@@ -96,14 +97,14 @@ jobs:
             openvr-api: openvr_api.dll
             config: Debug  
     steps:
-      - uses: actions/checkout@v2
-      - uses: actions/cache@v2
+      - uses: actions/checkout@v3
+      - uses: actions/cache@v3
         with:
           path: DXSDK
           key: cache-dxsdk
       - run: |
-          sed -i "s/0/${{ needs.version.outputs.revision }}/g" git_version.h
-          sed -i "s/unknown/${{ needs.version.outputs.sha7 }}/g" git_version.h
+          perl -i -pe"s/0/${{ needs.version.outputs.revision }}/g" git_version.h
+          perl -i -pe"s/unknown/${{ needs.version.outputs.sha7 }}/g" git_version.h
       - name: Build
         run: |
           export DXSDK_DIR="${GITHUB_WORKSPACE}/DXSDK"
@@ -144,7 +145,36 @@ jobs:
           cp -r glshader tmp 
           cp -r scripts tmp
           cp -r tables tmp
-      - uses: actions/upload-artifact@v2
+      - uses: actions/upload-artifact@v3
         with:
           name: VPinballX_GL-${{ needs.version.outputs.tag }}-${{ matrix.config }}-${{ matrix.platform }}
+          path: tmp
+
+  build-osx-x64:
+    name: Build VPinballX_GL-Release-osx-x64
+    runs-on: macos-latest
+    needs: [ version ]
+    steps:
+      - run: |
+          brew install sdl2 sdl2_ttf freeimage
+      - uses: actions/checkout@v3
+      - run: |
+          perl -i -pe"s/0/${{ needs.version.outputs.revision }}/g" git_version.h
+          perl -i -pe"s/unknown/${{ needs.version.outputs.sha7 }}/g" git_version.h
+      - name: Build
+        run: |
+          cp cmake/CMakeLists_osx-x64.txt CMakeLists.txt
+          cmake -DCMAKE_BUILD_TYPE=Release -B build/Release
+          cmake --build build/Release
+      - run: |
+          mkdir tmp 
+          cp build/Release/VPinballX_GL tmp
+          cp -r build/Release/glshader_osx tmp
+          cp -r build/Release/res tmp 
+          cp -r scripts tmp
+          cp -r tables tmp
+          cp lib/osx/libbass.dylib tmp
+      - uses: actions/upload-artifact@v3
+        with:
+          name: VPinballX_GL-${{ needs.version.outputs.tag }}-Release-osx-x64
           path: tmp

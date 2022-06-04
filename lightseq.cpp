@@ -1,4 +1,4 @@
-#include "StdAfx.h"
+#include "stdafx.h"
 
 LightSeq::LightSeq()
 {
@@ -31,9 +31,11 @@ void LightSeq::SetDefaults(bool fromMouseClick)
       m_d.m_wzCollection.clear();
    else
    {
+#ifndef __APPLE__
       WCHAR wtmp[MAXSTRING];
       MultiByteToWideCharNull(CP_ACP, 0, tmp.c_str(), -1, wtmp, MAXSTRING);
       m_d.m_wzCollection = wtmp;
+#endif
    }
 
    m_d.m_vCenter.x = fromMouseClick ? LoadValueFloatWithDefault("DefaultProps\\LightSequence", "CenterX", EDITOR_BG_WIDTH / 2) : (EDITOR_BG_WIDTH / 2);
@@ -218,13 +220,16 @@ void LightSeq::RenderSetup()
    m_queue.Head = 0;
    m_queue.Tail = 0;
 
+#ifndef __APPLE__
    // get a BSTR version of the collection we are to use
    const CComBSTR bstrCollection = m_d.m_wzCollection.c_str();
+#endif
 
    // get the number of collections available
    int size = m_ptable->m_vcollection.size();
    for (int i = 0; i < size; ++i)
    {
+#ifndef __APPLE__
       // get the name of this collection
       CComBSTR bstr;
       m_ptable->m_vcollection[i].get_Name(&bstr);
@@ -235,6 +240,7 @@ void LightSeq::RenderSetup()
          m_pcollection = m_ptable->m_vcollection.ElementAt(i);
          break;
       }
+#endif
    }
 
    // if the collection wasn't found or there are no collections available then bomb out
@@ -295,7 +301,7 @@ void LightSeq::RenderSetup()
          {
              Flasher* const pFlasher = (Flasher*)m_pcollection->m_visel.ElementAt(i);
              pFlasher->get_X(&x);
-             pFlasher->get_Y(&y);             
+             pFlasher->get_Y(&y);
          }
          else if (type == eItemPrimitive)
          {
@@ -1685,13 +1691,13 @@ void LightSeq::SetElementToState(const int index, const LightState State)
    {
        Flasher* const pFlasher = (Flasher*)m_pcollection->m_visel.ElementAt(index);             
        pFlasher->m_lockedByLS = true;
-       pFlasher->setInPlayState(State > Off ? true : false);     
+       pFlasher->setInPlayState(State > LightStateOff ? true : false);     
    }
    else if (type == eItemPrimitive) 
    {
        Primitive* const pPrimitive = (Primitive*)m_pcollection->m_visel.ElementAt(index);
        pPrimitive->m_lockedByLS = true;
-       pPrimitive->setInPlayState(State > Off ? true : false);
+       pPrimitive->setInPlayState(State > LightStateOff ? true : false);
    }
 }
 

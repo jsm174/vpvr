@@ -1,4 +1,4 @@
-#include "StdAfx.h"
+#include "stdafx.h"
 
 /*static*/ bool bass_init = false; //!! meh
 int bass_BG_idx = -1;
@@ -43,6 +43,7 @@ AudioPlayer::AudioPlayer()
       if (DSidx != -1)
       {
           DSAudioDevices DSads;
+#ifndef __APPLE__
           if (!FAILED(DirectSoundEnumerate(DSEnumCallBack, &DSads)))
           {
               if ((size_t)DSidx >= DSads.size() || DSads[DSidx]->guid != nullptr) // primary device has guid nullptr, so use BASS_idx = -1 in that case
@@ -63,6 +64,7 @@ AudioPlayer::AudioPlayer()
               for (size_t i = 0; i < DSads.size(); i++)
                   delete DSads[i];
           }
+#endif
       }
       }
 

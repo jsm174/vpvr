@@ -3,8 +3,10 @@
 template<class T> class VectorProtected  // keeps only -pointers- of elements and does -not- free them afterwards! AND with a critical section for some operations (see end of file)
 {
 private:
-   std::vector<void*> m_rg; // Data buffer
+   vector<void*> m_rg; // Data buffer
+#ifndef __APPLE__
    CRITICAL_SECTION m_CriticalSection;
+#endif
 
 public:
 
@@ -55,11 +57,14 @@ public:
 
     VectorProtected()
     {
+#ifndef __APPLE__
         InitializeCriticalSection((LPCRITICAL_SECTION)&m_CriticalSection);
+#endif
     }
 
     ~VectorProtected()
     {
+#ifndef __APPLE__
        unsigned long counter = 0;
        //try to enter the critical section. If it's used by another thread try again up to 1 second
        while ((TryEnterCriticalSection((LPCRITICAL_SECTION)&m_CriticalSection) == 0) && (counter < 10))
@@ -74,28 +79,42 @@ public:
            LeaveCriticalSection((LPCRITICAL_SECTION)&m_CriticalSection);
            DeleteCriticalSection((LPCRITICAL_SECTION)&m_CriticalSection);
        }
+#endif
     }
 
     T *ElementAt(const int iPos) const
     {
+#ifndef __APPLE__
         EnterCriticalSection((LPCRITICAL_SECTION)&m_CriticalSection);
+#endif
         T * const value = (T *)(m_rg[iPos]);
+
+#ifndef __APPLE__
         LeaveCriticalSection((LPCRITICAL_SECTION)&m_CriticalSection);
+#endif
         return value;
     }
 
     T& operator[](const int iPos)
     {
+#ifndef __APPLE__
         EnterCriticalSection((LPCRITICAL_SECTION)&m_CriticalSection);
+#endif
         T &value = *((T *)(m_rg[iPos]));
+#ifndef __APPLE__
         LeaveCriticalSection((LPCRITICAL_SECTION)&m_CriticalSection);
+#endif
         return value;
     }
     const T& operator[](const int iPos) const
     {
+#ifndef __APPLE__
         EnterCriticalSection((LPCRITICAL_SECTION)&m_CriticalSection);
+#endif
         const T &value = *((T *)(m_rg[iPos]));
+#ifndef __APPLE__
         LeaveCriticalSection((LPCRITICAL_SECTION)&m_CriticalSection);
+#endif
         return value;
     }
 };

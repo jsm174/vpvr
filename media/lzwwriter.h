@@ -35,7 +35,11 @@ private:
        return (1 << n_bits) - 1;
    }
 
+#ifndef __APPLE__
    CComPtr<IStream> m_pistream;
+#else
+   IStream* m_pistream;
+#endif
    int *m_bits;
    int m_width, m_height;
    int m_pitch;	// x-length of each scanline (divisible by 8, normally)

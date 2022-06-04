@@ -1,4 +1,4 @@
-#include "StdAfx.h"
+#include "stdafx.h"
 #include "objloader.h"
 #include "meshes/triggerSimpleMesh.h"
 #include "meshes/triggerStarMesh.h"
@@ -90,6 +90,8 @@ void Trigger::UpdateStatusBarInfo()
          meshVertices = triggerStar;
          break;
       }
+      default:
+         break;
       }
 
       m_vertices.resize(m_numVertices);
@@ -204,7 +206,7 @@ void Trigger::UIRenderPass1(Sur * const psur)
    {
       psur->SetFillColor(m_ptable->RenderSolid() ? RGB(200, 220, 200) : -1);
 
-      std::vector<RenderVertex> vvertex;
+      vector<RenderVertex> vvertex;
       GetRgVertex(vvertex);
 
       psur->Polygon(vvertex);
@@ -224,7 +226,7 @@ void Trigger::UIRenderPass2(Sur * const psur)
 
    if (m_d.m_shape != TriggerStar && m_d.m_shape != TriggerButton)
    {
-      std::vector<RenderVertex> vvertex;
+      vector<RenderVertex> vvertex;
       GetRgVertex(vvertex);
 
       psur->SetObject(nullptr);
@@ -280,7 +282,7 @@ void Trigger::UIRenderPass2(Sur * const psur)
       if (m_numIndices > 0)
       {
          const size_t numPts = m_numIndices / 3 + 1;
-         std::vector<Vertex2D> drawVertices(numPts);
+         vector<Vertex2D> drawVertices(numPts);
 
          const Vertex3Ds& A = m_vertices[m_faceIndices[0]];
          drawVertices[0] = Vertex2D(A.x, A.y);
@@ -379,7 +381,7 @@ void Trigger::GetHitShapesDebug(vector<HitObject*> &pvho)
    case TriggerWireD:
    case TriggerInder:
    {
-      std::vector<RenderVertex> vvertex;
+      vector<RenderVertex> vvertex;
       GetRgVertex(vvertex);
 
       const int cvertex = (int)vvertex.size();
@@ -411,7 +413,7 @@ void Trigger::GetHitShapesDebug(vector<HitObject*> &pvho)
 void Trigger::CurvesToShapes(vector<HitObject*> &pvho)
 {
    const float height = m_ptable->GetSurfaceHeight(m_d.m_szSurface, m_d.m_vCenter.x, m_d.m_vCenter.y);
-   std::vector<RenderVertex> vvertex;
+   vector<RenderVertex> vvertex;
    GetRgVertex(vvertex);
 
    const int count = (int)vvertex.size();
@@ -619,6 +621,7 @@ void Trigger::ExportMesh(ObjLoader& loader)
    if (!m_d.m_visible || m_d.m_shape == TriggerNone)
       return;
 
+#ifndef __APPLE__
    char name[sizeof(m_wzName)/sizeof(m_wzName[0])];
    WideCharToMultiByteNull(CP_ACP, 0, m_wzName, -1, name, sizeof(name), nullptr, nullptr);
    GenerateMesh();
@@ -667,6 +670,7 @@ void Trigger::ExportMesh(ObjLoader& loader)
 
    loader.WriteFaceInfoList(indices, m_numIndices);
    loader.UpdateFaceOffset(m_numVertices);
+#endif
 }
 
 //
@@ -843,6 +847,8 @@ void Trigger::RenderSetup()
       indices = triggerStarIndices;
       break;
    }
+   default:
+      break;
    }
 
    SAFE_BUFFER_RELEASE(m_triggerIndexBuffer);
@@ -895,11 +901,13 @@ void Trigger::PutPointCenter(const Vertex2D& pv)
 
 void Trigger::EditMenu(CMenu &menu)
 {
+#ifndef __APPLE__
    menu.EnableMenuItem(ID_WALLMENU_FLIP, MF_BYCOMMAND | MF_ENABLED);
    menu.EnableMenuItem(ID_WALLMENU_MIRROR, MF_BYCOMMAND | MF_ENABLED);
    menu.EnableMenuItem(ID_WALLMENU_ROTATE, MF_BYCOMMAND | MF_ENABLED);
    menu.EnableMenuItem(ID_WALLMENU_SCALE, MF_BYCOMMAND | MF_ENABLED);
    menu.EnableMenuItem(ID_WALLMENU_ADDPOINT, MF_BYCOMMAND | MF_ENABLED);
+#endif
 }
 
 void Trigger::DoCommand(int icmd, int x, int y)
@@ -934,7 +942,7 @@ void Trigger::DoCommand(int icmd, int x, int y)
 
       const Vertex2D v = m_ptable->TransformPoint(x, y);
 
-      std::vector<RenderVertex> vvertex;
+      vector<RenderVertex> vvertex;
       GetRgVertex(vvertex);
 
       int iSeg;

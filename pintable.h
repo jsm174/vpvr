@@ -5,11 +5,18 @@
 #if !defined(AFX_PINTABLE_H__D14A2DAB_2984_4FE7_A102_D0283ECE31B4__INCLUDED_)
 #define AFX_PINTABLE_H__D14A2DAB_2984_4FE7_A102_D0283ECE31B4__INCLUDED_
 
-#include <inc/robin_hood.h>
+#include "inc/robin_hood.h"
 
 #include <atomic>
 #include "hash.h"
+
+#ifndef __APPLE__
 #include "SearchSelectDialog.h"
+#else
+#include <iostream>
+class Light;
+#endif
+
 
 #define VIEW_PLAYFIELD 1
 #define VIEW_BACKGLASS 2
@@ -30,10 +37,10 @@ struct LightSource
 
 struct ProtectionData
 {
-   long fileversion;
-   long size;
+   LONG fileversion;
+   LONG size;
    unsigned char paraphrase[16 + 8];
-   unsigned long flags;
+   UINT32 flags;
    int keyversion;
    int spare1;
    int spare2;
@@ -65,9 +72,21 @@ class ProgressDialog : public CDialog
 {
 public:
    ProgressDialog();
-   void SetProgress(const int value) { m_progressBar.SetPos(value); }
+   void SetProgress(const int value) {
+#ifndef __APPLE__
+      m_progressBar.SetPos(value);
+#else
+      std::cout << value << std::endl;
+#endif
+   }
 
-   void SetName(const std::string &text) { m_progressName.SetWindowText(text.c_str()); }
+   void SetName(const string &text) { 
+#ifndef __APPLE__
+      m_progressName.SetWindowText(text.c_str());
+#else
+      std::cout << text << std::endl;
+#endif
+   }
 
 protected:
    virtual BOOL OnInitDialog();
@@ -376,7 +395,7 @@ public:
    int AddListImage(HWND hwndListView, Texture *const ppi);
    void RemoveImage(Texture *const ppi);
    HRESULT LoadImageFromStream(IStream *pstm, unsigned int idx, int version);
-   Texture *GetImage(const std::string &szName) const;
+   Texture *GetImage(const string &szName) const;
    bool GetImageLink(const Texture *const ppi) const;
    PinBinary *GetImageLinkBinary(const int id);
 
@@ -572,10 +591,10 @@ public:
    void AddDbgMaterial(const Material *const pmat);
    void UpdateDbgMaterial();
 
-   bool IsMaterialNameUnique(const std::string &name) const;
-   Material *GetMaterial(const std::string &name) const;
-   Material *GetSurfaceMaterial(const std::string &name) const;
-   Texture *GetSurfaceImage(const std::string &name) const;
+   bool IsMaterialNameUnique(const string &name) const;
+   Material *GetMaterial(const string &name) const;
+   Material *GetSurfaceMaterial(const string &name) const;
+   Texture *GetSurfaceImage(const string &name) const;
 
    bool GetCollectionIndex(const ISelect *const element, int &collectionIndex, int &elementIndex);
 
@@ -878,12 +897,15 @@ public:
 private:
    PinTableMDI *m_mdiTable;
    CString m_notesText;
-   robin_hood::unordered_map<std::string, Texture *, StringHashFunctor, StringComparator> m_textureMap; // hash table to speed up texture lookup by name
-   robin_hood::unordered_map<std::string, Material *, StringHashFunctor, StringComparator> m_materialMap; // hash table to speed up material lookup by name
+   robin_hood::unordered_map<string, Texture *, StringHashFunctor, StringComparator> m_textureMap; // hash table to speed up texture lookup by name
+   robin_hood::unordered_map<string, Material *, StringHashFunctor, StringComparator> m_materialMap; // hash table to speed up material lookup by name
    bool m_moving;
 };
 
-class ScriptGlobalTable : public CComObjectRootEx<CComSingleThreadModel>, public IDispatchImpl<ITableGlobal, &IID_ITableGlobal, &LIBID_VPinballLib>, public IScriptable
+class ScriptGlobalTable : 
+   public CComObjectRootEx<CComSingleThreadModel>, 
+   public IDispatchImpl<ITableGlobal, &IID_ITableGlobal, &LIBID_VPinballLib>, 
+   public IScriptable
 {
 public:
    // Headers to support communication between the game and the script.
@@ -900,7 +922,7 @@ public:
    STDMETHOD(SaveValue)(BSTR TableName, BSTR ValueName, VARIANT Value);
    STDMETHOD(StopSound)(BSTR Sound);
    STDMETHOD(AddObject)(BSTR Name, IDispatch *pdisp);
-#ifdef _WIN64
+#if defined(_WIN64) || defined(__APPLE__)
    STDMETHOD(get_GetPlayerHWnd)(/*[out, retval]*/ SIZE_T *pVal);
 #else
    STDMETHOD(get_GetPlayerHWnd)(/*[out, retval]*/ long *pVal);

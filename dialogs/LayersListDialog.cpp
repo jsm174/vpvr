@@ -48,7 +48,7 @@ void LayersListDialog::DeleteLayer()
       return;
 
    const HTREEITEM layerToDelete = m_layerTreeView.GetCurrentLayerItem();
-   const std::vector<HTREEITEM> allSubItems = m_layerTreeView.GetSubItems(layerToDelete);
+   const vector<HTREEITEM> allSubItems = m_layerTreeView.GetSubItems(layerToDelete);
 
    if (!allSubItems.empty())
    {
@@ -62,7 +62,7 @@ void LayersListDialog::DeleteLayer()
    {
       hFillLayer = m_layerTreeView.GetNextItem(hFillLayer, TVGN_NEXT);
    }
-   const std::string fillLayerName(m_layerTreeView.GetItemText(hFillLayer));
+   const string fillLayerName(m_layerTreeView.GetItemText(hFillLayer));
    m_layerTreeView.SetActiveLayer(fillLayerName);
    for (const HTREEITEM item : allSubItems)
    {
@@ -88,7 +88,7 @@ void LayersListDialog::DeleteLayer()
 
 void LayersListDialog::ClearList() { m_layerTreeView.DeleteAll(); }
 
-void LayersListDialog::UpdateLayerList(const std::string& name)
+void LayersListDialog::UpdateLayerList(const string& name)
 {
    if (m_activeTable == nullptr)
       return;
@@ -110,7 +110,7 @@ void LayersListDialog::UpdateLayerList(const std::string& name)
 
    ClearList();
    const bool checkName = name.empty() ? false : true;
-   std::string sName = name;
+   string sName = name;
    if (checkName) //transform the name to lower
       std::transform(sName.begin(), sName.end(), sName.begin(), tolower);
 
@@ -124,15 +124,15 @@ void LayersListDialog::UpdateLayerList(const std::string& name)
          else if (!GetCaseSensitiveFilter())
          {
             //filter obj name and filter to lower
-            std::string objName = std::string(m_activeTable->m_vedit[t]->GetName());
+            string objName = string(m_activeTable->m_vedit[t]->GetName());
             std::transform(objName.begin(), objName.end(), objName.begin(), tolower);
-            if (std::string(objName).find(sName) != std::string::npos)
+            if (string(objName).find(sName) != string::npos)
                AddLayer(psel->m_layerName, m_activeTable->m_vedit[t]);
          }
          else
          {
             //filter std
-            if (std::string(m_activeTable->m_vedit[t]->GetName()).find(name) != std::string::npos)
+            if (string(m_activeTable->m_vedit[t]->GetName()).find(name) != string::npos)
                AddLayer(psel->m_layerName, m_activeTable->m_vedit[t]);
          }
       }
@@ -301,7 +301,7 @@ BOOL LayersListDialog::OnCommand(WPARAM wParam, LPARAM lParam)
 
 void LayersListDialog::OnAssignButton()
 {
-   const std::string layerName = m_layerTreeView.GetCurrentLayerName();
+   const string layerName = m_layerTreeView.GetCurrentLayerName();
    if (layerName.empty())
    {
       ShowError("Please select a layer!");
@@ -586,7 +586,7 @@ std::vector<HTREEITEM> LayerTreeView::GetAllLayerItems() const
 
 std::vector<HTREEITEM> LayerTreeView::GetSubItems(HTREEITEM hParent)
 {
-   std::vector<HTREEITEM> allSubItems;
+   vector<HTREEITEM> allSubItems;
    HTREEITEM item = GetChild(hParent);
    while (item)
    {
@@ -703,7 +703,7 @@ void LayerTreeView::SetActiveLayer(const string& name)
    HTREEITEM item = GetChild(hRootItem);
    while (item)
    {
-      const std::string layerName(GetItemText(item));
+      const string layerName(GetItemText(item));
       if (layerName == name)
       {
          hCurrentLayerItem = item;
@@ -835,7 +835,7 @@ LRESULT LayerTreeView::WndProc(UINT msg, WPARAM wparam, LPARAM lparam)
                   const HTREEITEM oldItem = GetItemByElement(pedit);
                   DeleteItem(oldItem);
                   AddElementToLayer(hLayerItem, pedit->GetName(), pedit);
-                  std::vector<HTREEITEM> subItem = GetSubItems(dragItem->m_hDragLayer);
+                  vector<HTREEITEM> subItem = GetSubItems(dragItem->m_hDragLayer);
                   if (subItem.empty())
                   {
                      if (dragItem->m_hDragLayer == hCurrentLayerItem)

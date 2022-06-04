@@ -4,7 +4,7 @@
 #include "quadtree.h"
 #include "Debugger.h"
 #include "typedefs3D.h"
-#include "sdl2/SDL_TTF.h"
+#include <SDL_ttf.h>
 #include "pininput.h"
 
 #define DEFAULT_PLAYER_WIDTH 1024
@@ -77,7 +77,11 @@ static constexpr int regkey_defdik[eCKeys] = {
    DIK_SLASH,
    DIK_SPACE,
    DIK_RETURN,
+#ifndef __APPLE__
    DIK_F11,
+#else
+   DIK_F1,
+#endif
    DIK_O,
    DIK_D,
    DIK_5,
@@ -204,7 +208,7 @@ public:
    }
 
 private:
-   std::vector<VertexBuffer*> m_buffers;
+   vector<VertexBuffer*> m_buffers;
    size_t m_curIdx;
 };
 #else
@@ -382,13 +386,13 @@ public:
    Ball *m_pactiveballBC;    // ball that the ball control UI will use
    Vertex3Ds *m_pBCTarget;   // If non-null, the target location for the ball to roll towards
 
-   std::vector<Ball*> m_vball;
-   std::vector<HitFlipper*> m_vFlippers;
+   vector<Ball*> m_vball;
+   vector<HitFlipper*> m_vFlippers;
 
    vector<AnimObject*> m_vanimate; // animated objects that need frame updates
 
    vector<HitTimer*> m_vht;
-   std::vector<TimerOnOff> m_changed_vht; // stores all en/disable changes to the m_vht timer list, to avoid problems with timers dis/enabling themselves
+   vector<TimerOnOff> m_changed_vht; // stores all en/disable changes to the m_vht timer list, to avoid problems with timers dis/enabling themselves
 
    Vertex3Ds m_gravity;
 
@@ -534,7 +538,7 @@ public:
    bool m_cabinetMode;
    bool m_meshAsPlayfield;
    bool m_recordContacts;             // flag for DoHitTest()
-   std::vector< CollisionEvent > m_contacts;
+   vector< CollisionEvent > m_contacts;
 
    int2 m_dmd;
    BaseTexture* m_texdmd;
@@ -550,13 +554,13 @@ public:
 #else
 private:
 #endif
-   std::vector<MoverObject*> m_vmover; // moving objects for physics simulation
+   vector<MoverObject*> m_vmover; // moving objects for physics simulation
 #ifdef LOG
 private:
 #endif
    vector<HitObject*> m_vho;
 
-   std::vector<Ball*> m_vballDelete;   // Balls to free at the end of the frame
+   vector<Ball*> m_vballDelete;   // Balls to free at the end of the frame
 
    /*HitKD*/HitQuadtree m_hitoctree;
 
@@ -579,9 +583,9 @@ private:
    U64 m_lastFlipTime;
 
    // all Hitables obtained from the table's list of Editables
-   std::vector< Hitable* > m_vhitables;
-   std::vector< Hitable* > m_vHitNonTrans; // non-transparent hitables
-   std::vector< Hitable* > m_vHitTrans;    // transparent hitables
+   vector< Hitable* > m_vhitables;
+   vector< Hitable* > m_vHitNonTrans; // non-transparent hitables
+   vector< Hitable* > m_vHitTrans;    // transparent hitables
 
    int2 m_curAccel[PININ_JOYMXCNT];
 
@@ -688,7 +692,9 @@ public:
    bool m_overwriteBallImages;
    Texture *m_ballImage;
    Texture *m_decalImage;
+#ifndef __APPLE__
    DebuggerDialog m_debuggerDialog;
+#endif
 
 private:
 #ifdef ENABLE_SDL

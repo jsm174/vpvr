@@ -1,11 +1,11 @@
-#include "StdAfx.h"
+#include "stdafx.h"
 #include "RenderDevice.h"
 #include "Shader.h"
-#include "math\math.h"
-#include "inc\ThreadPool.h"
+#include "math/math.h"
+#include "inc/ThreadPool.h"
 #ifdef ENABLE_BAM
-#include "BAM\BAM_ViewPortSetup.h"
-#include "BAM\BAM_Tracker.h"
+#include "BAM/BAM_ViewPortSetup.h"
+#include "BAM/BAM_Tracker.h"
 #endif
 
 extern int logicalNumberOfProcessors;
@@ -476,10 +476,10 @@ HRESULT Pin3D::InitPrimary(const bool fullScreen, const int colordepth, int &ref
 {
    const unsigned int display = LoadValueIntWithDefault(stereo3D == STEREO_VR ? "PlayerVR" : "Player", "Display", 0);
 
-   std::vector<DisplayConfig> displays;
+   vector<DisplayConfig> displays;
    getDisplayList(displays);
    int adapter = 0;
-   for (std::vector<DisplayConfig>::iterator dispConf = displays.begin(); dispConf != displays.end(); ++dispConf)
+   for (vector<DisplayConfig>::iterator dispConf = displays.begin(); dispConf != displays.end(); ++dispConf)
       if (display == dispConf->display)
          adapter = dispConf->adapter;
 
@@ -608,11 +608,21 @@ HRESULT Pin3D::InitPin3D()
 
    //
 
+#ifndef __APPLE__
    m_pinballEnvTexture.CreateFromResource(IDB_BALL);
    m_aoDitherTexture.CreateFromResource(IDB_AO_DITHER);
+#else
+   m_pinballEnvTexture.CreateFromResource("res/ball.bmp");
+   m_aoDitherTexture.CreateFromResource("res/AOdither.bmp");
+#endif
 
    m_envTexture = g_pplayer->m_ptable->GetImage(g_pplayer->m_ptable->m_envImage);
+
+#ifndef __APPLE__
    m_builtinEnvTexture.CreateFromResource(IDB_ENV);
+#else
+   m_builtinEnvTexture.CreateFromResource("res/envmap.bmp");
+#endif
 
    const Texture * const envTex = m_envTexture ? m_envTexture : &m_builtinEnvTexture;
    const unsigned int envTexHeight = min(envTex->m_pdsBuffer->height(),256) / 8;
@@ -904,7 +914,7 @@ void Pin3D::InitLayoutFS()
    constexpr float inclination = 0.0f;// ANGTORAD(g_pplayer->m_ptable->m_BG_inclination[g_pplayer->m_ptable->m_BG_current_set]);
    //const float FOV = (g_pplayer->m_ptable->m_BG_FOV[g_pplayer->m_ptable->m_BG_current_set] < 1.0f) ? 1.0f : g_pplayer->m_ptable->m_BG_FOV[g_pplayer->m_ptable->m_BG_current_set];
 
-   std::vector<Vertex3Ds> vvertex3D;
+   vector<Vertex3Ds> vvertex3D;
    for (size_t i = 0; i < g_pplayer->m_ptable->m_vedit.size(); ++i)
       g_pplayer->m_ptable->m_vedit[i]->GetBoundingVertices(vvertex3D);
 
@@ -1013,7 +1023,7 @@ void Pin3D::InitLayout(const bool FSS_mode, const float xpixoff, const float ypi
    float inclination = ANGTORAD(g_pplayer->m_ptable->m_BG_inclination[g_pplayer->m_ptable->m_BG_current_set]);
    const float FOV = (g_pplayer->m_ptable->m_BG_FOV[g_pplayer->m_ptable->m_BG_current_set] < 1.0f) ? 1.0f : g_pplayer->m_ptable->m_BG_FOV[g_pplayer->m_ptable->m_BG_current_set];
 
-   std::vector<Vertex3Ds> vvertex3D;
+   vector<Vertex3Ds> vvertex3D;
    for (size_t i = 0; i < g_pplayer->m_ptable->m_vedit.size(); ++i)
       g_pplayer->m_ptable->m_vedit[i]->GetBoundingVertices(vvertex3D);
 
@@ -1337,7 +1347,7 @@ void PinProjection::MultiplyView(const Matrix3D& mat)
    m_matView.Multiply(mat, m_matView);
 }
 
-void PinProjection::FitCameraToVerticesFS(const std::vector<Vertex3Ds>& pvvertex3D, float aspect, float rotation, float inclination, float FOV, float xlatez, float layback)
+void PinProjection::FitCameraToVerticesFS(const vector<Vertex3Ds>& pvvertex3D, float aspect, float rotation, float inclination, float FOV, float xlatez, float layback)
 {
    // Determine camera distance
    const float rrotsin = sinf(rotation);
@@ -1383,10 +1393,12 @@ void PinProjection::FitCameraToVerticesFS(const std::vector<Vertex3Ds>& pvvertex
       minxintercept = min(minxintercept, v.x - slopex*v.z);
    }
 
+#ifndef __APPLE__
    slintf("maxy: %f\n", maxyintercept);
    slintf("miny: %f\n", minyintercept);
    slintf("maxx: %f\n", maxxintercept);
    slintf("minx: %f\n", minxintercept);
+#endif
 
    // Find camera center in xy plane
 
@@ -1397,7 +1409,7 @@ void PinProjection::FitCameraToVerticesFS(const std::vector<Vertex3Ds>& pvvertex
    m_vertexcamera.x = (float)((maxxintercept + minxintercept) * 0.5f);
 }
 
-void PinProjection::FitCameraToVertices(const std::vector<Vertex3Ds>& pvvertex3D, float aspect, float rotation, float inclination, float FOV, float xlatez, float layback)
+void PinProjection::FitCameraToVertices(const vector<Vertex3Ds>& pvvertex3D, float aspect, float rotation, float inclination, float FOV, float xlatez, float layback)
 {
    // Determine camera distance
    const float rrotsin = sinf(rotation);
@@ -1440,10 +1452,12 @@ void PinProjection::FitCameraToVertices(const std::vector<Vertex3Ds>& pvvertex3D
       minxintercept = min(minxintercept, v.x - slopex*v.z);
    }
 
+#ifndef __APPLE__
    slintf("maxy: %f\n", maxyintercept);
    slintf("miny: %f\n", minyintercept);
    slintf("maxx: %f\n", maxxintercept);
    slintf("minx: %f\n", minxintercept);
+#endif
 
    // Find camera center in xy plane
 
@@ -1454,7 +1468,7 @@ void PinProjection::FitCameraToVertices(const std::vector<Vertex3Ds>& pvvertex3D
    m_vertexcamera.x = (maxxintercept + minxintercept) * 0.5f;
 }
 
-void PinProjection::ComputeNearFarPlane(const std::vector<Vertex3Ds>& verts)
+void PinProjection::ComputeNearFarPlane(const vector<Vertex3Ds>& verts)
 {
    m_rznear = FLT_MAX;
    m_rzfar = -FLT_MAX;
@@ -1471,8 +1485,10 @@ void PinProjection::ComputeNearFarPlane(const std::vector<Vertex3Ds>& verts)
       m_rzfar = max(m_rzfar, tempz);
    }
 
+#ifndef __APPLE__
    slintf("m_rznear: %f\n", m_rznear);
    slintf("m_rzfar : %f\n", m_rzfar);
+#endif
 
    // beware the div-0 problem
    if (m_rznear < 0.001f)

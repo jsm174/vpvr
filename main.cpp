@@ -1,6 +1,6 @@
 // VPinball.cpp : Implementation of WinMain
 
-#include "StdAfx.h"
+#include "stdafx.h"
 
 #ifdef CRASH_HANDLER
 #include "StackTrace.h"
@@ -13,7 +13,15 @@
 
 #define  SET_CRT_DEBUG_FIELD(a)   _CrtSetDbgFlag((a) | _CrtSetDbgFlag(_CRTDBG_REPORT_FLAG))
 
+#ifdef __APPLE__
+#include <unistd.h>
+#endif
+
+#ifndef __APPLE__
 #include "vpinball_i.c"
+#else
+#include "vpinball_i_osx.c"
+#endif
 
 #ifdef CRASH_HANDLER
 extern "C" int __cdecl _purecall(void)
@@ -45,6 +53,7 @@ extern "C" int __cdecl _purecall(void)
 }
 #endif
 
+#ifndef __APPLE__
 #ifndef DISABLE_FORCE_NVIDIA_OPTIMUS
 extern "C" {
    __declspec(dllexport) DWORD NvOptimusEnablement = 0x00000001;
@@ -184,6 +193,12 @@ PCHAR* CommandLineToArgvA(PCHAR CmdLine, int* _argc)
    (*_argc) = argc;
    return argv;
 }
+#endif
+
+#ifdef __APPLE__
+int g_argc;
+char **g_argv;
+#endif
 
 robin_hood::unordered_map<ItemTypeEnum, EditableInfo> EditableRegistry::m_map;
 
@@ -204,14 +219,18 @@ private:
 public:
    VPApp(HINSTANCE hInstance)
    {
+#ifndef __APPLE__
        m_vpinball.theInstance = GetInstanceHandle();
        SetResourceHandle(m_vpinball.theInstance);
+#endif
    }
    
    virtual ~VPApp() 
    {
+#ifndef __APPLE__
       _Module.Term();
       CoUninitialize();
+#endif
       g_pvp = nullptr;
 
 #ifdef _CRTDBG_MAP_ALLOC
@@ -227,6 +246,7 @@ public:
       rde::CrashHandler::Init();
 #endif
 
+#ifndef __APPLE__
       // disable auto-rotate on tablets
 #if (WINVER <= 0x0601)
       SetDisplayAutoRotationPreferences = (pSDARP)GetProcAddress(GetModuleHandle(TEXT("user32.dll")),
@@ -241,11 +261,15 @@ public:
       SYSTEM_INFO sysinfo;
       GetSystemInfo(&sysinfo);
       m_vpinball.m_logicalNumberOfProcessors = sysinfo.dwNumberOfProcessors; //!! this ignores processor groups, so if at some point we need extreme multi threading, implement this in addition!
+#else
+      m_vpinball.m_logicalNumberOfProcessors = 1;
+#endif
 
       IsOnWine(); // init static variable in there
 
       InitXMLregistry(m_vpinball.m_szMyPath);
 
+#ifndef __APPLE__
 #if _WIN32_WINNT >= 0x0400 & defined(_ATL_FREE_THREADED)
       const HRESULT hRes = CoInitializeEx(nullptr, COINIT_MULTITHREADED);
 #else
@@ -253,6 +277,7 @@ public:
 #endif
       _ASSERTE(SUCCEEDED(hRes));
       _Module.Init(ObjectMap, m_vpinball.theInstance, &LIBID_VPinballLib);
+#endif
 
       file = false;
       play = false;
@@ -273,8 +298,13 @@ public:
          play = true;
       }
 
+#ifndef __APPLE__
       int nArgs;
       LPSTR *szArglist = CommandLineToArgvA(GetCommandLine(), &nArgs);
+#else
+      int nArgs = g_argc;
+      char**  szArglist = g_argv;
+#endif
 
       for (int i = 0; i < nArgs; ++i)
       {
@@ -297,19 +327,23 @@ public:
 
          if (lstrcmpi(szArglist[i], _T("-UnregServer")) == 0 || lstrcmpi(szArglist[i], _T("/UnregServer")) == 0)
          {
+#ifndef __APPLE__
             _Module.UpdateRegistryFromResource(IDR_VPINBALL, FALSE);
             const HRESULT ret = _Module.UnregisterServer(TRUE);
             if (ret != S_OK)
                 ShowError("Unregister VP functions failed");
+#endif
             run = false;
             break;
          }
          if (lstrcmpi(szArglist[i], _T("-RegServer")) == 0 || lstrcmpi(szArglist[i], _T("/RegServer")) == 0)
          {
+#ifndef __APPLE__
             _Module.UpdateRegistryFromResource(IDR_VPINBALL, TRUE);
             const HRESULT ret = _Module.RegisterServer(TRUE);
             if (ret != S_OK)
                 ShowError("Register VP functions failed");
+#endif
             run = false;
             break;
          }
@@ -405,16 +439,21 @@ public:
             extractPov = extractpov;
             extractScript = extractscript;
 
+#ifndef __APPLE__
             // Remove leading - or /
             if ((szArglist[i + 1][0] == '-') || (szArglist[i + 1][0] == '/'))
                szTableFileName = szArglist[i + 1] + 1;
             else
                szTableFileName = szArglist[i + 1];
+#else
+            szTableFileName = szArglist[i + 1];
+#endif
 
             // Remove " "
             if (szTableFileName[0] == '"')
                szTableFileName = szTableFileName.substr(1, szTableFileName.size()-1);
 
+#ifndef __APPLE__
             // Add current path
             if (szTableFileName[1] != ':') {
                char szLoadDir[MAXSTRING];
@@ -428,6 +467,7 @@ public:
                   PathFromFilename(szTableFileName, dir);
                   SetCurrentDirectory(dir.c_str());
                }
+#endif
 
             ++i; // two params processed
 
@@ -438,6 +478,7 @@ public:
          }
       }
 
+#ifndef __APPLE__
       free(szArglist);
 
       // load and register VP type library for COM integration
@@ -462,6 +503,7 @@ public:
          else
             m_vpinball.MessageBox("Could not load type library.", "Error", MB_ICONSTOP);
       }
+#endif
 
       InitVPX();
       //SET_CRT_DEBUG_FIELD( _CRTDBG_LEAK_CHECK_DF );
@@ -470,6 +512,7 @@ public:
 
    void InitVPX()
    {
+#ifndef __APPLE__
 #if _WIN32_WINNT >= 0x0400 & defined(_ATL_FREE_THREADED)
        const HRESULT hRes = _Module.RegisterClassObjects(CLSCTX_LOCAL_SERVER,
            REGCLS_MULTIPLEUSE | REGCLS_SUSPENDED);
@@ -485,6 +528,7 @@ public:
        iccex.dwSize = sizeof(INITCOMMONCONTROLSEX);
        iccex.dwICC = ICC_COOL_CLASSES;
        InitCommonControlsEx(&iccex);
+#endif
 
        {
            EditableRegistry::RegisterEditable<Bumper>();
@@ -514,7 +558,9 @@ public:
        m_vpinball.m_bgles = bgles;
        m_vpinball.m_fgles = fgles;
 
+#ifndef __APPLE__
        g_haccel = LoadAccelerators(m_vpinball.theInstance, MAKEINTRESOURCE(IDR_VPACCEL));
+#endif
 
        if (file)
        {
@@ -558,10 +604,12 @@ public:
 
          m_vpinball.Release();
 
+#ifndef __APPLE__
          DestroyAcceleratorTable(g_haccel);
 
          _Module.RevokeClassObjects();
          Sleep(THREADS_PAUSE); //wait for any threads to finish
+#endif
 
          SaveXMLregistry(m_vpinball.m_szMyPath);
          ClearXMLregistry();
@@ -605,3 +653,72 @@ extern "C" int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE /*hPrevInstance*/, 
 #endif
    return retval;
 }
+
+#ifdef __APPLE__
+int main(int argc, char** argv) {
+   g_argc = argc;
+   g_argv = argv;
+
+   return WinMain(nullptr, nullptr, (LPTSTR)"", 0);
+}
+
+int MessageBox(HWND hWnd, LPCTSTR lpText, LPCTSTR lpCaption, UINT uType) {
+  std::cout << lpText << " : " << lpCaption << std::endl;
+  return 0;
+}
+
+int MessageBox(LPCTSTR lpText, LPCTSTR lpCaption, UINT uType) {
+  std::cout << lpText << " : " << lpCaption << std::endl;
+  return 0;
+}
+
+int GetSystemMetrics(int nIndex) {
+  if (nIndex == SM_CXSCREEN) {
+    return 1024;
+  } else if (nIndex == SM_CYSCREEN) {
+    return 768;
+  }
+  return 0;
+}
+
+UINT WINAPI DECLSPEC_HOTPATCH GetCurrentDirectory( UINT buflen, LPSTR buf ) {
+   getcwd(buf, buflen);
+   return 0;
+}
+
+DWORD WINAPI DECLSPEC_HOTPATCH GetModuleFileName( HMODULE module, LPSTR filename, DWORD size ) {
+   memset(filename, 0, size);
+   return 0;
+}
+
+BOOL ScreenToClient(HWND hWnd, LPPOINT lpPoint) {
+  lpPoint->x -= 0;  // FIXME Wnd->rcClient.left;
+  lpPoint->y -= 0;  // FIXME Wnd->rcClient.top;
+
+  return TRUE;
+}
+
+BOOL GetCursorPos(LPPOINT lpPoint) { return TRUE; }
+
+HRESULT StgOpenStorage(const OLECHAR* pwcsName, IStorage* pstgPriority,
+                       DWORD grfMode, SNB snbExclude, DWORD reserved,
+                       IStorage** ppstgOpen) {
+  PoleStorage* storage = new PoleStorage();
+  return storage->OpenStorage((LPCOLESTR)pwcsName, pstgPriority, grfMode,
+                              nullptr, reserved, ppstgOpen);
+}
+
+void WINAPI DECLSPEC_HOTPATCH SysFreeString(BSTR str) {}
+
+HRESULT WINAPI DECLSPEC_HOTPATCH VariantClear(VARIANTARG* pVarg) {
+  return S_OK;
+}
+
+HRESULT WINAPI VariantCopy(VARIANTARG* pvargDest, VARIANTARG* pvargSrc) {
+  return S_OK;
+}
+
+BSTR WINAPI SysAllocString(LPCOLESTR str) { return nullptr; }
+
+void WINAPI VariantInit(VARIANTARG* pVarg) {}
+#endif

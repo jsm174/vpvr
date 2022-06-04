@@ -16,7 +16,9 @@
 
 #define COMPRESS_MESHES // uses miniz for compressing the meshes
 
+#ifndef __APPLE__
 #define CRASH_HANDLER
+#endif
 
 //#define _CRTDBG_MAP_ALLOC
 
@@ -110,8 +112,10 @@
 #define STEREO_VR  4
 
 #ifdef ENABLE_SDL
+#ifndef __APPLE__
 //No VR support with DX9 possible, only with DX11 and OpenGL
 #define ENABLE_VR
+#endif
 #endif
 
 //
@@ -146,8 +150,12 @@
  #define WM_MENURBUTTONUP                0x0122
  #define WM_UNINITMENUPOPUP              0x0125
 #endif
-#include "main.h"
 
+#ifndef __APPLE__
+  #include "main.h"
+#else
+  #include "main_osx.h"
+#endif
 
 //{{AFX_INSERT_LOCATION}}
 // Microsoft Visual C++ will insert additional declarations immediately before the previous line.

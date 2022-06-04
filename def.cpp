@@ -1,11 +1,14 @@
 #include "stdafx.h"
+#ifndef __APPLE__
 #include "Intshcut.h"
+#endif
 
 unsigned long long tinymt64state[2] = { 'T', 'M' };
 
 
 float sz2f(const string& sz)
 {
+#ifndef __APPLE__
    const int len = (int)sz.length()+1;
    WCHAR * const wzT = new WCHAR[len];
    MultiByteToWideCharNull(CP_ACP, 0, sz.c_str(), -1, wzT, len);
@@ -24,10 +27,14 @@ float sz2f(const string& sz)
    delete[] wzT;
 
    return result;
+#else
+   return 0;
+#endif
 }
 
 void f2sz(const float f, string& sz)
 {
+#ifndef __APPLE__
    CComVariant var = f;
 
    if (SUCCEEDED(VariantChangeType(&var, &var, 0, VT_BSTR)))
@@ -40,6 +47,7 @@ void f2sz(const float f, string& sz)
    }
    else
       sz = "0.0"; //!! must this be somehow localized, i.e. . vs ,
+#endif
 }
 
 void WideStrNCopy(const WCHAR *wzin, WCHAR *wzout, const DWORD wzoutMaxLen)
@@ -51,10 +59,12 @@ void WideStrNCopy(const WCHAR *wzin, WCHAR *wzout, const DWORD wzoutMaxLen)
 
 void WideStrCat(const WCHAR *wzin, WCHAR *wzout, const DWORD wzoutMaxLen)
 {
+#ifndef __APPLE__
    DWORD i = lstrlenW(wzout);
    wzout += i;
    while (*wzin && (++i < wzoutMaxLen)) { *wzout++ = *wzin++; }
    *wzout = 0;
+#endif
 }
 
 int WideStrCmp(const WCHAR *wz1, const WCHAR *wz2)
@@ -103,40 +113,53 @@ int WzSzStrNCmp(const WCHAR *wz1, const char *sz2, const DWORD maxComparisonLen)
 
 LocalString::LocalString(const int resid)
 {
+#ifndef __APPLE__
    if (resid > 0)
       /*const int cchar =*/ LoadString(g_pvp->theInstance, resid, m_szbuffer, sizeof(m_szbuffer));
    else
       m_szbuffer[0] = '\0';
+#endif
 }
 
 LocalStringW::LocalStringW(const int resid)
 {
+#ifndef __APPLE__
    if (resid > 0)
       LoadStringW(g_pvp->theInstance, resid, m_szbuffer, sizeof(m_szbuffer)/sizeof(WCHAR));
    else
       m_szbuffer[0] = L'\0';
+#endif
 }
 
 WCHAR *MakeWide(const string& sz)
 {
+#ifndef __APPLE__
    const int len = (int)sz.length()+1;
    WCHAR * const wzT = new WCHAR[len];
    MultiByteToWideCharNull(CP_ACP, 0, sz.c_str(), -1, wzT, len);
 
    return wzT;
+#else
+   return 0;
+#endif
 }
 
 char *MakeChar(const WCHAR * const wz)
 {
+#ifndef __APPLE__
    const int len = lstrlenW(wz);
    char * const szT = new char[len + 1];
    WideCharToMultiByteNull(CP_ACP, 0, wz, -1, szT, len + 1, nullptr, nullptr);
 
    return szT;
+#else
+   return nullptr;
+#endif
 }
 
 HRESULT OpenURL(const string& szURL)
 {
+#ifndef __APPLE__
    IUniformResourceLocator* pURL;
 
    HRESULT hres = CoCreateInstance(CLSID_InternetShortcut, nullptr, CLSCTX_INPROC_SERVER, IID_IUniformResourceLocator, (void**)&pURL);
@@ -162,6 +185,9 @@ HRESULT OpenURL(const string& szURL)
    hres = pURL->InvokeCommand(&ivci);
    pURL->Release();
    return (hres);
+#else
+   return 0L;
+#endif
 }
 
 char* replace(const char* const original, const char* const pattern, const char* const replacement)
@@ -210,10 +236,14 @@ char* replace(const char* const original, const char* const pattern, const char*
 // This exists such that we only check if we're on wine once, and assign the result of this function to a static const var
 static bool IsOnWineInternal()
 {
+#ifndef __APPLE__
    // See https://www.winehq.org/pipermail/wine-devel/2008-September/069387.html
    const HMODULE ntdllHandle = GetModuleHandleW(L"ntdll.dll");
    assert(ntdllHandle != nullptr && "Could not GetModuleHandleW(L\"ntdll.dll\")");
    return GetProcAddress(ntdllHandle, "wine_get_version") != nullptr;
+#else
+   return false;
+#endif
 }
 
 bool IsOnWine()

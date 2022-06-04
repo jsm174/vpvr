@@ -1,5 +1,9 @@
 #pragma once
 
+#ifdef __APPLE__
+class Plunger;
+#endif
+
 class PlungerMoverObject : public MoverObject
 {
 public:

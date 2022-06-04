@@ -122,7 +122,7 @@ inline ScoreType findVertexScore(const int numActiveTris,
 
 // The main reordering function
 template <typename T>
-T* reorderForsyth(const vector<T>& indices,
+T* reorderForsyth(const std::vector<T>& indices,
                   const int nVertices)
 {
 	if (indices.empty() || nVertices == 0)
@@ -140,11 +140,13 @@ T* reorderForsyth(const vector<T>& indices,
 	// First scan over the vertex data, count the total number of
 	// occurrances of each vertex
 	for (size_t i = 0; i < indices.size(); i++) {
+		#ifndef __APPLE__
 		if (cVertex[indices[i]].numActiveTri == MAX_ADJACENCY) {
 			// Unsupported mesh,
 			// vertex shared by too many triangles
 			return nullptr;
 		}
+		#endif
 		cVertex[indices[i]].numActiveTri++;
 		if (cVertex[indices[i]].numActiveTri == indices.size()) {
 			// Degenerated mesh

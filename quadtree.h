@@ -37,7 +37,7 @@ public:
 #ifndef USE_EMBREE
    void HitTestBall(const Ball * const pball, CollisionEvent& coll) const;
 #else
-   void HitTestBall(std::vector<Ball*> ball) const;
+   void HitTestBall(vector<Ball*> ball) const;
 #endif
    void HitTestXRay(const Ball * const pball, vector<HitObject*> &pvhoHit, CollisionEvent& coll) const;
 
@@ -61,13 +61,13 @@ private:
    bool m_leaf;
    eObjType m_ObjType; // only used if m_unique != nullptr, to identify which object type this is
 #else
-   std::vector<HitObject*> *m_pvho;
+   vector<HitObject*> *m_pvho;
 
    RTCDevice m_embree_device; //!! have only one instead of the two (dynamic and non-dynamic)?
    RTCScene m_scene;
 #endif
 
-   std::vector<HitObject*> m_vho;
+   vector<HitObject*> m_vho;
 
 #if !defined(NDEBUG) && defined(PRINT_DEBUG_COLLISION_TREE)
 public:
@@ -78,7 +78,7 @@ public:
       for (int i = 0; i <= indentLevel; ++i)
          indent[i] = (i == indentLevel) ? 0 : ' ';
       char msg[256];
-      sprintf_s(msg, "[%f %f], items=%u", m_vcenter.x, m_vcenter.y, m_vho.size());
+      sprintf_s(msg, sizeof(msg), "[%f %f], items=%u", m_vcenter.x, m_vcenter.y, m_vho.size());
       strncat_s(indent, msg, sizeof(indent)-strnlen_s(indent, sizeof(indent))-1);
       OutputDebugString(indent);
       if (!m_leaf)

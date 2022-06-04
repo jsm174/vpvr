@@ -236,7 +236,7 @@ void HitFlipper::CalcHitBBox()
    aabb = ExtendBoundsAtPosition(aabb, c, m_flipperMover.m_flipperradius, r2, a0);
    aabb = ExtendBoundsAtPosition(aabb, c, m_flipperMover.m_flipperradius, r2, a1);
 
-   // extend with extremes (-90°, 0°, 90° and 180°)
+   // extend with extremes (-90Â°, 0Â°, 90Â° and 180Â°)
    aabb = ExtendBoundsAtExtreme(aabb, c, m_flipperMover.m_flipperradius, r2, r3, a0, a1, -90.f);
    aabb = ExtendBoundsAtExtreme(aabb, c, m_flipperMover.m_flipperradius, r2, r3, a0, a1, 0.f);
    aabb = ExtendBoundsAtExtreme(aabb, c, m_flipperMover.m_flipperradius, r2, r3, a0, a1, 90.f);

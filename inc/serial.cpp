@@ -6,13 +6,13 @@
 
 #include "serial.h"
 
-void serial::list_ports(vector<string> &availablePorts)
+void serial::list_ports(std::vector<std::string> &availablePorts)
 {
    availablePorts.clear();
    DWORD size = 512*512;
    do
    {
-      vector<char> allDeviceNames(size);
+      std::vector<char> allDeviceNames(size);
 
       // on Windows the serial ports are devices that begin with "COM"
       const DWORD ret = QueryDosDevice(nullptr, allDeviceNames.data(), size);
@@ -22,7 +22,7 @@ void serial::list_ports(vector<string> &availablePorts)
          do
          {
             DWORD c2 = 0;
-            string tmp;
+            std::string tmp;
             while (allDeviceNames[c + c2] != '\0')
             {
                tmp += allDeviceNames[c + c2];
@@ -123,10 +123,10 @@ unsigned int serial::get_stopbit_int(const serial_stopbit _stopbit) {
 	}
 }
 
-bool serial::open(const string& device) 
+bool serial::open(const std::string& device) 
 {
 	// Fix the device name if required
-	string devName;
+	std::string devName;
 	if (device.length() > 4 && device[0] != '\\')
 		devName = "\\\\.\\";
 	devName += device;
@@ -252,7 +252,7 @@ serial_err serial::setup(
 	return SERIAL_ERR_OK;
 }
 
-serial_err serial::write(const vector<char>& buffer) 
+serial_err serial::write(const std::vector<char>& buffer) 
 {
 	assert((fd != INVALID_HANDLE_VALUE) && configured);
 
@@ -272,7 +272,7 @@ serial_err serial::write(const vector<char>& buffer)
 	return SERIAL_ERR_OK;
 }
 
-serial_err serial::read(vector<char>& buffer) // depends on the size of the incoming vector!
+serial_err serial::read(std::vector<char>& buffer) // depends on the size of the incoming vector!
 {
 	assert((fd != INVALID_HANDLE_VALUE) && configured);
 

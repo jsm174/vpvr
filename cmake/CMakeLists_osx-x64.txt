@@ -1,0 +1,327 @@
+cmake_minimum_required(VERSION 3.22)
+
+file(READ vpversion.h version)
+string(REGEX MATCH "VP_VERSION_MAJOR[ ]+([0-9]+)" _tmp ${version})
+set(VERSION_MAJOR "${CMAKE_MATCH_1}")
+string(REGEX MATCH "VP_VERSION_MINOR[ ]+([0-9]+)" _tmp ${version})
+set(VERSION_MINOR "${CMAKE_MATCH_1}")
+string(REGEX MATCH "VP_VERSION_REV[ ]+([0-9]+)" _tmp ${version})
+set(VERSION_REV "${CMAKE_MATCH_1}")
+
+project(vpinball VERSION "${VERSION_MAJOR}.${VERSION_MINOR}.${VERSION_REV}")
+
+set(CMAKE_CXX_STANDARD 11)
+set(CMAKE_C_STANDARD 99)
+
+set(CMAKE_CXX_FLAGS "-Wno-inconsistent-missing-override")
+
+set(CMAKE_MODULE_PATH
+   ${CMAKE_SOURCE_DIR}/cmake/modules
+   ${CMAKE_MODULE_PATH}
+)
+
+add_library(GLAD
+   inc/glad_41/glad.c
+)
+
+target_include_directories(GLAD PUBLIC
+   inc/glad_41
+)
+
+add_library(VBSCRIPT
+   inc/vbscript/compile.c
+   inc/vbscript/global.c
+   inc/vbscript/interp.c
+   inc/vbscript/lex.c
+   inc/vbscript/regexp.c
+   inc/vbscript/utils.c
+   inc/vbscript/vbdisp.c
+   inc/vbscript/vbregexp.c
+   inc/vbscript/vbscript.c
+   inc/vbscript/vbscript_main.c
+   inc/vbscript/parser.tab.c
+)
+
+target_include_directories(VBSCRIPT PUBLIC
+   inc/reactos/sdk/include/psdk
+   inc/reactos/sdk/include/reactos
+)
+
+find_package(PkgConfig REQUIRED)
+pkg_check_modules(SDL2 REQUIRED sdl2)
+pkg_check_modules(SDL2TTF REQUIRED SDL2_ttf)
+
+find_package(FreeImage REQUIRED)
+
+add_compile_definitions(
+   ENABLE_SDL
+   ENABLE_SDL_INPUT
+   TWEAK_GL_SHADER
+   ENABLE_INI
+   IMGUI_IMPL_OPENGL_LOADER_CUSTOM
+)
+
+add_compile_options(
+)
+
+add_definitions( 
+   "-D__forceinline=__attribute__((always_inline)) inline" 
+)
+
+add_executable(vpinball
+   backGlass.cpp
+   backGlass.h
+   codeviewedit.cpp
+   codeviewedit.h
+   flasher.cpp
+   flasher.h
+   hittarget.cpp
+   hittarget.h
+   imgui/imconfig.h
+   imgui/imgui.cpp
+   imgui/imgui.h
+   imgui/imgui_draw.cpp
+   imgui/imgui_impl_opengl3.cpp
+   imgui/imgui_impl_opengl3.h
+   imgui/imgui_impl_sdl.cpp
+   imgui/imgui_impl_sdl.h
+   imgui/imgui_tables.cpp
+   imgui/imgui_widgets.cpp
+   imgui/imgui_internal.h
+   imgui/implot/implot.cpp
+   imgui/implot/implot.h
+   imgui/implot/implot_items.cpp
+   imgui/implot/implot_internal.h
+   inc/gpuprofiler.cpp
+   inc/gpuprofiler.h
+   inc/progmesh.cpp
+   inc/progmesh.h
+   inc/ThreadPool.h
+   inc/rapidxml.hpp
+   inc/rapidxml_iterators.hpp
+   inc/rapidxml_print.hpp
+   inc/rapidxml_utils.hpp
+   inc/robin_hood.h
+   inc/pole/pole.cpp
+   IndexBuffer.cpp
+   IndexBuffer.h
+   math/bbox.h
+   math/math.cpp
+   math/math.h
+   math/matrix.cpp
+   math/matrix.h
+   math/vector.h
+   media/fileio.cpp
+   media/fileio.h
+   media/lzwreader.cpp
+   media/lzwreader.h
+   media/lzwwriter.cpp
+   media/lzwwriter.h
+   media/wavread.cpp
+   media/wavread.h
+   kdtree.cpp
+   kdtree.h
+   objloader.cpp
+   objloader.h
+   pin/ball.cpp
+   pin/ball.h
+   pin/collide.cpp
+   pin/collide.h
+   pin/collideex.cpp
+   pin/collideex.h
+   pin/hitflipper.cpp
+   pin/hitflipper.h
+   pin/hitplunger.cpp
+   pin/hitplunger.h
+   pin/player.cpp
+   pin/player.h
+   ballex.cpp
+   ballex.h
+   bumper.cpp
+   bumper.h
+   codeview.cpp
+   codeview.h
+   decal.cpp
+   decal.h
+   def.cpp
+   def.h
+   dispid.h
+   dispreel.cpp
+   dispreel.h
+   disputil.cpp
+   disputil.h
+   dragpoint.cpp
+   dragpoint.h
+   editablereg.h
+   eventproxy.h
+   extern.cpp
+   extern.h
+   flipper.cpp
+   flipper.h
+   hid.cpp
+   hid.h
+   gate.cpp
+   gate.h
+   hitrectsur.cpp
+   hitrectsur.h
+   hitsur.cpp
+   hitsur.h
+   idebug.h
+   ieditable.cpp
+   ieditable.h
+   iselect.cpp
+   iselect.h
+   kicker.cpp
+   kicker.h
+   light.cpp
+   light.h
+   lightseq.cpp
+   lightseq.h
+   Material.h
+   mesh.cpp
+   mesh.h
+   meshes/ballMesh.h
+   meshes/bulbLightMesh.h
+   meshes/bulbSocketMesh.h
+   meshes/bumperBaseMesh.h
+   meshes/bumperCapMesh.h
+   meshes/bumperRingMesh.h
+   meshes/bumperSocketMesh.h
+   meshes/dropTargetT2Mesh.h
+   meshes/dropTargetT3Mesh.h
+   meshes/dropTargetT4Mesh.h
+   meshes/flipperBase.h
+   meshes/gateBracketMesh.h
+   meshes/gateLongPlateMesh.h
+   meshes/gatePlateMesh.h
+   meshes/gateWireMesh.h
+   meshes/gateWireRectangleMesh.h
+   meshes/hitTargetFatRectangleMesh.h
+   meshes/hitTargetFatSquareMesh.h
+   meshes/hitTargetRectangleMesh.h
+   meshes/hitTargetRoundMesh.h
+   meshes/hitTargetT1SlimMesh.h
+   meshes/hitTargetT2SlimMesh.h
+   meshes/kickerCupMesh.h
+   meshes/kickerHitMesh.h
+   meshes/kickerHoleMesh.h
+   meshes/kickerSimpleHoleMesh.h
+   meshes/spinnerBracketMesh.h
+   meshes/spinnerPlateMesh.h
+   meshes/triggerSimpleMesh.h
+   meshes/triggerStarMesh.h
+   mixer.cpp
+   mixer.h
+   physconst.h
+   pin3d.cpp
+   pin3d.h
+   pinbinary.cpp
+   pinbinary.h
+   pininput.cpp
+   pininput.h
+   pinsound.cpp
+   pinsound.h
+   pintable.cpp
+   pintable.h
+   pinundo.cpp
+   pinundo.h
+   plumb.cpp
+   plumb.h
+   plunger.cpp
+   plunger.h
+   primitive.cpp
+   primitive.h
+   quadtree.cpp
+   quadtree.h
+   ramp.cpp
+   ramp.h
+   regutil.cpp
+   regutil.h
+   RenderDevice.cpp
+   RenderDevice.h
+   rubber.cpp
+   rubber.h
+   Shader.cpp
+   Shader.h
+   ShaderGL.cpp
+   spinner.cpp
+   spinner.h
+   surface.cpp
+   surface.h
+   textbox.cpp
+   textbox.h
+   Texture.cpp
+   Texture.h
+   TextureManager.cpp
+   TextureManager.h
+   timer.cpp
+   timer.h
+   trigger.cpp
+   trigger.h
+   vector.h
+   vectorsort.h
+   main_osx.h
+   main.cpp
+   VertexBuffer.cpp
+   VertexBuffer.h
+   vpinball.cpp
+   wintimer.cpp
+   wintimer.h
+   vpinball_h.h
+   audioplayer.cpp
+   audioplayer.h
+)
+
+target_include_directories(vpinball PUBLIC
+   pin
+   media
+   inc
+   inc/pole
+   inc/reactos/sdk/include/psdk
+   inc/reactos/sdk/include/reactos
+   imgui
+   imgui/implot
+   ${CMAKE_SOURCE_DIR}
+   ${SDL2_INCLUDE_DIRS}
+   ${SDL2TTF_INCLUDE_DIRS}
+)
+
+target_precompile_headers(vpinball PUBLIC
+)
+
+target_link_directories(vpinball PUBLIC
+   ${SDL2_LIBRARY_DIRS}
+   lib/osx
+)
+
+target_link_libraries(vpinball PUBLIC
+   GLAD
+   VBSCRIPT
+   ${SDL2_LIBRARIES} 
+   ${SDL2TTF_LIBRARIES}
+   FreeImage::FreeImage
+   bass
+)
+
+set_target_properties(vpinball PROPERTIES
+   RUNTIME_OUTPUT_NAME "VPinballX_GL"
+   SKIP_BUILD_RPATH TRUE
+   LINK_FLAGS "-Wl,-rpath,@executable_path"
+)
+
+add_custom_command(TARGET vpinball POST_BUILD
+   COMMAND "${CMAKE_COMMAND}" -E make_directory "$<TARGET_FILE_DIR:vpinball>/res"
+   COMMAND "${CMAKE_COMMAND}" -E copy_directory "${CMAKE_SOURCE_DIR}/glshader_osx" "$<TARGET_FILE_DIR:vpinball>/glshader_osx"
+   COMMAND "${CMAKE_COMMAND}" -E copy "${CMAKE_SOURCE_DIR}/res/bumperbase.bmp" "$<TARGET_FILE_DIR:vpinball>/res"
+   COMMAND "${CMAKE_COMMAND}" -E copy "${CMAKE_SOURCE_DIR}/res/bumperskirt.bmp" "$<TARGET_FILE_DIR:vpinball>/res"
+   COMMAND "${CMAKE_COMMAND}" -E copy "${CMAKE_SOURCE_DIR}/res/bumperring.bmp" "$<TARGET_FILE_DIR:vpinball>/res"
+   COMMAND "${CMAKE_COMMAND}" -E copy "${CMAKE_SOURCE_DIR}/res/bumperCap.bmp" "$<TARGET_FILE_DIR:vpinball>/res"
+   COMMAND "${CMAKE_COMMAND}" -E copy "${CMAKE_SOURCE_DIR}/res/kickerCup.bmp" "$<TARGET_FILE_DIR:vpinball>/res"
+   COMMAND "${CMAKE_COMMAND}" -E copy "${CMAKE_SOURCE_DIR}/res/kickerWilliams.bmp" "$<TARGET_FILE_DIR:vpinball>/res"
+   COMMAND "${CMAKE_COMMAND}" -E copy "${CMAKE_SOURCE_DIR}/res/kickerGottlieb.bmp" "$<TARGET_FILE_DIR:vpinball>/res"
+   COMMAND "${CMAKE_COMMAND}" -E copy "${CMAKE_SOURCE_DIR}/res/kickerT1.bmp" "$<TARGET_FILE_DIR:vpinball>/res"
+   COMMAND "${CMAKE_COMMAND}" -E copy "${CMAKE_SOURCE_DIR}/res/kickerHoleWood.bmp" "$<TARGET_FILE_DIR:vpinball>/res"
+   COMMAND "${CMAKE_COMMAND}" -E copy "${CMAKE_SOURCE_DIR}/res/ball.bmp" "$<TARGET_FILE_DIR:vpinball>/res"
+   COMMAND "${CMAKE_COMMAND}" -E copy "${CMAKE_SOURCE_DIR}/res/AOdither.bmp" "$<TARGET_FILE_DIR:vpinball>/res"
+   COMMAND "${CMAKE_COMMAND}" -E copy "${CMAKE_SOURCE_DIR}/res/envmap.bmp" "$<TARGET_FILE_DIR:vpinball>/res"
+)
