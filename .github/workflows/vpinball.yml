@@ -148,3 +148,7 @@ jobs:
         with:
           name: VPinballX_GL-${{ needs.version.outputs.tag }}-${{ matrix.config }}-${{ matrix.platform }}
           path: tmp
+      - uses: actions/upload-artifact@v2
+        with:
+          name: VPinballX_GL-${{ needs.version.outputs.tag }}-${{ matrix.config }}-${{ matrix.platform }}-build
+          path: build
