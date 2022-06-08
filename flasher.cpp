@@ -1,8 +1,10 @@
-#include "StdAfx.h"
+#include "stdafx.h"
 #include "Shader.h"
 #include "IndexBuffer.h"
 #include "VertexBuffer.h"
+#ifndef __APPLE__
 #include "captureExt.h"
+#endif
 
 Flasher::Flasher()
 {
@@ -161,7 +163,7 @@ void Flasher::UIRenderPass1(Sur * const psur)
    // Don't want border color to be over-ridden when selected - that will be drawn later
    psur->SetBorderColor(-1, false, 0);
 
-   std::vector<RenderVertex> vvertex;
+   vector<RenderVertex> vvertex;
    GetRgVertex(vvertex);
    Texture *ppi;
    if (m_ptable->RenderSolid() && m_d.m_displayTexture && (ppi = m_ptable->GetImage(m_d.m_szImageA)))
@@ -206,7 +208,7 @@ void Flasher::UIRenderPass2(Sur * const psur)
    psur->SetObject(nullptr);
 
    {
-      std::vector<RenderVertex> vvertex; //!! check/reuse from UIRenderPass1
+      vector<RenderVertex> vvertex; //!! check/reuse from UIRenderPass1
       GetRgVertex(vvertex);
       psur->Polygon(vvertex);
    }
@@ -328,7 +330,7 @@ void Flasher::UpdateMesh()
 
 void Flasher::RenderSetup()
 {
-   std::vector<RenderVertex> vvertex;
+   vector<RenderVertex> vvertex;
    GetRgVertex(vvertex);
 
    m_numVertices = (unsigned int)vvertex.size();
@@ -339,10 +341,10 @@ void Flasher::RenderSetup()
        return;
    }
 
-   std::vector<WORD> vtri;
+   vector<WORD> vtri;
    
    {
-   std::vector<unsigned int> vpoly(m_numVertices);
+   vector<unsigned int> vpoly(m_numVertices);
    for (unsigned int i = 0; i < m_numVertices; i++)
       vpoly[i] = i;
 
@@ -496,7 +498,7 @@ void Flasher::DoCommand(int icmd, int x, int y)
       STARTUNDO
       const Vertex2D v = m_ptable->TransformPoint(x, y);
 
-      std::vector<RenderVertex> vvertex;
+      vector<RenderVertex> vvertex;
       GetRgVertex(vvertex);
 
       Vertex2D vOut;
@@ -994,6 +996,7 @@ void Flasher::ResetVideoCap()
 //if PASSED a blank title then we treat this as STOP capture and free resources.
 STDMETHODIMP Flasher::put_VideoCapUpdate(BSTR cWinTitle)
 {
+#ifndef __APPLE__
     if (m_videoCapWidth == 0 || m_videoCapHeight == 0) return S_FALSE; //safety.  VideoCapWidth/Height needs to be set prior to this call
 
     char szWinTitle[MAXNAMEBUFFER];
@@ -1081,6 +1084,7 @@ STDMETHODIMP Flasher::put_VideoCapUpdate(BSTR cWinTitle)
     ReleaseDC(m_videoCapHwnd, hdcWindow);
     DeleteObject(hbmScreen);
     DeleteObject(hdcMemDC);
+#endif
 
     return S_OK;
 }
@@ -1205,9 +1209,11 @@ void Flasher::RenderDynamic()
 #endif
        pd3dDevice->DMDShader->SetVector(SHADER_vRes_Alpha_time, &r);
 
+#ifndef __APPLE__
        // If we're capturing Freezy DMD switch to ext technique to avoid incorrect colorization
        if (captureExternalDMD())
           pd3dDevice->DMDShader->SetTechnique(SHADER_TECHNIQUE_basic_DMD_world_ext);
+#endif
 
        if (g_pplayer->m_texdmd != nullptr)
           pd3dDevice->DMDShader->SetTexture(SHADER_Texture0, g_pplayer->m_pin3d.m_pd3dPrimaryDevice->m_texMan.LoadTexture(g_pplayer->m_texdmd, true, false));

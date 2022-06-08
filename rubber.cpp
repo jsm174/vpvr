@@ -1,4 +1,4 @@
-#include "StdAfx.h"
+#include "stdafx.h"
 //#include "forsyth.h"
 #include "objloader.h"
 #include "Shader.h"
@@ -30,7 +30,7 @@ Rubber::~Rubber()
 void Rubber::UpdateStatusBarInfo()
 {
    char tbuf[128];
-   sprintf_s(tbuf, "Height: %.3f | Thickness: %.3f", m_vpinball->ConvertToUnit(m_d.m_height), m_vpinball->ConvertToUnit((float)m_d.m_thickness));
+   sprintf_s(tbuf, sizeof(tbuf), "Height: %.3f | Thickness: %.3f", m_vpinball->ConvertToUnit(m_d.m_height), m_vpinball->ConvertToUnit((float)m_d.m_thickness));
    m_vpinball->SetStatusBarUnitInfo(tbuf, true);
 }
 
@@ -121,7 +121,7 @@ void Rubber::WriteRegDefaults()
 
 void Rubber::DrawRubberMesh(Sur * const psur)
 {
-   std::vector<Vertex2D> drawVertices;
+   vector<Vertex2D> drawVertices;
 
    GenerateMesh(6);
    UpdateRubber(false, m_d.m_height);
@@ -265,7 +265,7 @@ void Rubber::RenderBlueprint(Sur *psur, const bool solid)
    }
 }
 
-void Rubber::GetBoundingVertices(std::vector<Vertex3Ds>& pvvertex3D)
+void Rubber::GetBoundingVertices(vector<Vertex3Ds>& pvvertex3D)
 {
    //!! meh, this is delivering something loosely related to the bounding vertices, but its only used in the cam fitting code so far, so keep for legacy reasons
    int cvertex;
@@ -327,7 +327,7 @@ void Rubber::GetBoundingVertices(std::vector<Vertex3Ds>& pvvertex3D)
  */
 Vertex2D *Rubber::GetSplineVertex(int &pcvertex, bool ** const ppfCross, Vertex2D ** const pMiddlePoints, const float _accuracy)
 {
-   std::vector<RenderVertex> vvertex;
+   vector<RenderVertex> vvertex;
    GetCentralCurve(vvertex, _accuracy);
    // vvertex are the 2D vertices forming the central curve of the rubber as seen from above
 
@@ -444,7 +444,7 @@ Vertex2D *Rubber::GetSplineVertex(int &pcvertex, bool ** const ppfCross, Vertex2
 /*
  * Get an approximation of the curve described by the control points of this ramp.
  */
-void Rubber::GetCentralCurve(std::vector<RenderVertex> &vv, const float _accuracy) const
+void Rubber::GetCentralCurve(vector<RenderVertex> &vv, const float _accuracy) const
 {
       float accuracy;
 
@@ -467,7 +467,7 @@ void Rubber::GetCentralCurve(std::vector<RenderVertex> &vv, const float _accurac
 #if 0
 float Rubber::GetSurfaceHeight(float x, float y) const
 {
-   std::vector<RenderVertex> vvertex;
+   vector<RenderVertex> vvertex;
    GetCentralCurve(vvertex);
 
    const int cvertex = (int)vvertex.size();
@@ -625,7 +625,7 @@ void Rubber::GetHitShapesDebug(vector<HitObject*> &pvho)
 
 void Rubber::AddPoint(int x, int y, const bool smooth)
 {
-    std::vector<RenderVertex> vvertex;
+    vector<RenderVertex> vvertex;
     GetCentralCurve(vvertex);
     const Vertex2D v = m_ptable->TransformPoint(x, y);
     Vertex2D vOut;
@@ -1284,6 +1284,7 @@ void Rubber::RenderDynamic()
 
 void Rubber::ExportMesh(ObjLoader& loader)
 {
+#ifndef __APPLE__
    if (m_d.m_visible)
    {
       char name[sizeof(m_wzName)/sizeof(m_wzName[0])];
@@ -1299,6 +1300,7 @@ void Rubber::ExportMesh(ObjLoader& loader)
       loader.WriteFaceInfo(m_ringIndices);
       loader.UpdateFaceOffset(m_numVertices);
    }
+#endif
 }
 
 //

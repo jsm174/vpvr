@@ -286,8 +286,11 @@ private:
    void LOG(const int level, const string& fileNameRoot, const string& message);
 #endif
    bool parseFile(const string& fileNameRoot, const string& fileName, int level, robin_hood::unordered_map<string, string>& values, const string& parentMode);
-   string analyzeFunction(const char* shaderCodeName, const string& technique, const string& functionName, const robin_hood::unordered_map<string, string>& values);
    bool compileGLShader(const string& fileNameRoot, const string& shaderCodeName, const string& vertex, const string& geometry, const string& fragment);
+   string analyzeFunction(const char* shaderCodeName, const string& technique, const string& functionName, const robin_hood::unordered_map<string, string>& values);
+#ifdef __APPLE__
+   string preprocessGLShader(const string& shaderCode);
+#endif
 
    struct attributeLoc {
       GLenum type;
@@ -357,8 +360,8 @@ public:
    void setAttributeFormat(const DWORD fvf);
 
    static void setTextureDirty(const int TextureID);
-   static std::string shaderPath;
-   static std::string Defines;
+   static string shaderPath;
+   static string Defines;
 
 #else
 

@@ -1,4 +1,4 @@
-#include "StdAfx.h"
+#include "stdafx.h"
 #include "objloader.h"
 #include "meshes/spinnerBracketMesh.h"
 #include "meshes/spinnerPlateMesh.h"
@@ -27,7 +27,7 @@ Spinner::~Spinner()
 void Spinner::UpdateStatusBarInfo()
 {
    char tbuf[128];
-   sprintf_s(tbuf, "Length: %.3f | Height: %.3f", m_vpinball->ConvertToUnit(m_d.m_length), m_vpinball->ConvertToUnit(m_d.m_height));
+   sprintf_s(tbuf, sizeof(tbuf), "Length: %.3f | Height: %.3f", m_vpinball->ConvertToUnit(m_d.m_length), m_vpinball->ConvertToUnit(m_d.m_height));
    m_vpinball->SetStatusBarUnitInfo(tbuf, true);
 }
 
@@ -250,9 +250,10 @@ void Spinner::EndPlay()
 
 void Spinner::ExportMesh(ObjLoader& loader)
 {
+#ifndef __APPLE__
    char name[sizeof(m_wzName)/sizeof(m_wzName[0])];
    WideCharToMultiByteNull(CP_ACP, 0, m_wzName, -1, name, sizeof(name), nullptr, nullptr);
-   std::vector<Vertex3D_NoTex2> transformedVertices;
+   vector<Vertex3D_NoTex2> transformedVertices;
    vector<HitObject*> dummyHitObj;
 
    const float height = m_ptable->GetSurfaceHeight(m_d.m_szSurface, m_d.m_vCenter.x, m_d.m_vCenter.y)*m_ptable->m_BG_scalez[m_ptable->m_BG_current_set];
@@ -307,6 +308,7 @@ void Spinner::ExportMesh(ObjLoader& loader)
    loader.WriteFaceInfoList(spinnerPlateIndices, spinnerPlateNumFaces);
    loader.UpdateFaceOffset(spinnerPlateNumVertices);
    transformedVertices.clear();
+#endif
 }
 
 void Spinner::UpdatePlate(Vertex3D_NoTex2 * const vertBuffer)

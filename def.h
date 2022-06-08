@@ -53,23 +53,23 @@ __forceinline T saturate(const T x)
 }
 
 template <typename T>
-inline void RemoveFromVector(std::vector<T>& v, const T& val)
+inline void RemoveFromVector(vector<T>& v, const T& val)
 {
    v.erase(std::remove(v.begin(), v.end(), val), v.end());
 }
 
 template <typename T>
-inline void RemoveFromVectorSingle(std::vector<T>& v, const T& val)
+inline void RemoveFromVectorSingle(vector<T>& v, const T& val)
 {
-   typename std::vector<T>::const_iterator it = std::find(v.begin(), v.end(), val);
+   typename vector<T>::const_iterator it = std::find(v.begin(), v.end(), val);
    if (it != v.end())
       v.erase(it);
 }
 
 template <typename T>
-inline int FindIndexOf(const std::vector<T>& v, const T& val)
+inline int FindIndexOf(const vector<T>& v, const T& val)
 {
-   typename std::vector<T>::const_iterator it = std::find(v.begin(), v.end(), val);
+   typename vector<T>::const_iterator it = std::find(v.begin(), v.end(), val);
    if (it != v.end())
       return (int)(it - v.begin());
    else
@@ -79,7 +79,9 @@ inline int FindIndexOf(const std::vector<T>& v, const T& val)
 #define fTrue 1
 #define fFalse 0
 
+#ifndef __APPLE__
 #define BOOL int
+#endif
 
 typedef unsigned int    U32;
 typedef signed int      S32;
@@ -91,8 +93,8 @@ typedef unsigned char    U8;
 typedef signed char      S8;
 typedef float           F32;
 typedef double          F64;
-typedef unsigned _int64 U64;
-typedef _int64          S64;
+typedef uint64_t        U64;
+typedef int64_t         S64;
 
 #define MAXNAMEBUFFER 32
 #define MAXSTRING 1024 // usually used for paths,filenames,etc
@@ -107,7 +109,7 @@ inline void ref_count_trigger(const ULONG r, const char *file, const int line) /
 {
 #ifdef DEBUG_REFCOUNT_TRIGGER
    char msg[128];
-   sprintf_s(msg, 128, "Ref Count: %u at %s:%d", r, file, line);
+   sprintf_s(msg, sizeof(msg), "Ref Count: %u at %s:%d", r, file, line);
    /*g_pvp->*/MessageBox(nullptr, msg, "Error", MB_OK | MB_ICONEXCLAMATION);
 #endif
 }
@@ -199,7 +201,9 @@ public:
    WCHAR m_szbuffer[256];
 };
 
-#define M_PI 3.1415926535897932384626433832795
+#ifndef M_PI
+  #define M_PI 3.1415926535897932384626433832795
+#endif
 
 #define ANGTORAD(x) ((x) *(float)(M_PI/180.0))
 #define RADTOANG(x) ((x) *(float)(180.0/M_PI))
@@ -412,6 +416,130 @@ HRESULT OpenURL(const string& szURL);
 WCHAR *MakeWide(const string& sz);
 char *MakeChar(const WCHAR * const wz);
 
+#ifdef __APPLE__
+
+/* https://github.com/aawc/unrar/blob/main/unicode.cpp */
+
+typedef uint8_t          byte;   // Unsigned 8 bits.
+typedef unsigned int     uint;   // 32 bits or more.
+typedef wchar_t          wchar;
+
+inline bool UtfToWide(const char *Src,wchar *Dest,size_t DestSize)
+{
+  bool Success=true;
+  long dsize=(long)DestSize;
+  dsize--;
+  while (*Src!=0)
+  {
+    uint c=byte(*(Src++)),d;
+    if (c<0x80)
+      d=c;
+    else
+      if ((c>>5)==6)
+      {
+        if ((*Src&0xc0)!=0x80)
+        {
+          Success=false;
+          break;
+        }
+        d=((c&0x1f)<<6)|(*Src&0x3f);
+        Src++;
+      }
+      else
+        if ((c>>4)==14)
+        {
+          if ((Src[0]&0xc0)!=0x80 || (Src[1]&0xc0)!=0x80)
+          {
+            Success=false;
+            break;
+          }
+          d=((c&0xf)<<12)|((Src[0]&0x3f)<<6)|(Src[1]&0x3f);
+          Src+=2;
+        }
+        else
+          if ((c>>3)==30)
+          {
+            if ((Src[0]&0xc0)!=0x80 || (Src[1]&0xc0)!=0x80 || (Src[2]&0xc0)!=0x80)
+            {
+              Success=false;
+              break;
+            }
+            d=((c&7)<<18)|((Src[0]&0x3f)<<12)|((Src[1]&0x3f)<<6)|(Src[2]&0x3f);
+            Src+=3;
+          }
+          else
+          {
+            Success=false;
+            break;
+          }
+    if (--dsize<0)
+      break;
+    if (d>0xffff)
+    {
+      if (--dsize<0)
+        break;
+      if (d>0x10ffff) // UTF-8 must end at 0x10ffff according to RFC 3629.
+      {
+        Success=false;
+        continue;
+      }
+      if (sizeof(*Dest)==2) // Use the surrogate pair.
+      {
+        *(Dest++)=((d-0x10000)>>10)+0xd800;
+        *(Dest++)=(d&0x3ff)+0xdc00;
+      }
+      else
+        *(Dest++)=d;
+    }
+    else
+      *(Dest++)=d;
+  }
+  *Dest=0;
+  return Success;
+}
+
+inline void WideToUtf(const wchar *Src,char *Dest,size_t DestSize)
+{
+  long dsize=(long)DestSize;
+  dsize--;
+  while (*Src!=0 && --dsize>=0)
+  {
+    uint c=*(Src++);
+    if (c<0x80)
+      *(Dest++)=c;
+    else
+      if (c<0x800 && --dsize>=0)
+      {
+        *(Dest++)=(0xc0|(c>>6));
+        *(Dest++)=(0x80|(c&0x3f));
+      }
+      else
+      {
+        if (c>=0xd800 && c<=0xdbff && *Src>=0xdc00 && *Src<=0xdfff) // Surrogate pair.
+        {
+          c=((c-0xd800)<<10)+(*Src-0xdc00)+0x10000;
+          Src++;
+        }
+        if (c<0x10000 && (dsize-=2)>=0)
+        {
+          *(Dest++)=(0xe0|(c>>12));
+          *(Dest++)=(0x80|((c>>6)&0x3f));
+          *(Dest++)=(0x80|(c&0x3f));
+        }
+        else
+          if (c < 0x200000 && (dsize-=3)>=0)
+          {
+            *(Dest++)=(0xf0|(c>>18));
+            *(Dest++)=(0x80|((c>>12)&0x3f));
+            *(Dest++)=(0x80|((c>>6)&0x3f));
+            *(Dest++)=(0x80|(c&0x3f));
+          }
+      }
+  }
+  *Dest=0;
+}
+#endif
+
 // in case the incoming string length is >= the maximum char length of the outgoing one, WideCharToMultiByte will not produce a zero terminated string
 // this variant always makes sure that the outgoing string is zero terminated
 inline int WideCharToMultiByteNull(
@@ -424,12 +552,16 @@ inline int WideCharToMultiByteNull(
     LPCSTR         lpDefaultChar,
     LPBOOL         lpUsedDefaultChar)
 {
+#ifndef __APPLE__
     const int res = WideCharToMultiByte(CodePage,dwFlags,lpWideCharStr,cchWideChar,lpMultiByteStr,cbMultiByte,lpDefaultChar,lpUsedDefaultChar);
     if(cbMultiByte > 0 && lpMultiByteStr)
         lpMultiByteStr[cbMultiByte-1] = '\0';
     return res;
+#else
+   WideToUtf(lpWideCharStr, lpMultiByteStr, cbMultiByte);
+   return cbMultiByte-1;
+#endif
 }
-
 
 // in case the incoming string length is >= the maximum wchar length of the outgoing one, MultiByteToWideChar will not produce a zero terminated string
 // this variant always makes sure that the outgoing string is zero terminated
@@ -441,10 +573,17 @@ inline int MultiByteToWideCharNull(
     LPWSTR         lpWideCharStr,
     const int      cchWideChar)
 {
+#ifndef __APPLE__
     const int res = MultiByteToWideChar(CodePage,dwFlags,lpMultiByteStr,cbMultiByte,lpWideCharStr,cchWideChar);
     if(cchWideChar > 0 && lpWideCharStr)
         lpWideCharStr[cchWideChar-1] = L'\0';
     return res;
+#else
+    if (UtfToWide(lpMultiByteStr, lpWideCharStr, cchWideChar)) {
+       return wcslen(lpWideCharStr);
+    }
+    return 0;
+#endif
 }
 
 

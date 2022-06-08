@@ -2,6 +2,10 @@
 
 class Ball;
 
+#ifdef __APPLE__
+class Collection;
+#endif
+
 class EventProxyBase
 {
 public:
@@ -16,18 +20,22 @@ public:
 
    void FireVoidEventParm(const int dispid, const float parm)
    {
+#ifndef __APPLE__
       CComVariant rgvar[1] = { CComVariant(parm) };
       DISPPARAMS dispparams = { rgvar, nullptr, 1, 0 };
 
       FireDispID(dispid, &dispparams);
+#endif
    }
 
    void FireVoidEventParm(const int dispid, const int parm)
    {
+#ifndef __APPLE__
       CComVariant rgvar[1] = { CComVariant(parm) };
       DISPPARAMS dispparams = { rgvar, nullptr, 1, 0 };
 
       FireDispID(dispid, &dispparams);
+#endif
    }
 
    /*void FireVoidEventParm(const int dispid, const unsigned int parm)
@@ -64,10 +72,12 @@ public:
 
          if (pcollection!=nullptr)
          {
+#ifndef __APPLE__
             CComVariant rgvar[1] = { CComVariant((long)pT->m_viEventCollection[i]) };
             DISPPARAMS dispparams = { rgvar, nullptr, 1, 0 };
 
             pcollection->FireDispID(dispid, &dispparams);
+#endif
          }
       }
 
@@ -77,6 +87,7 @@ public:
 
    virtual HRESULT FireDispID(const DISPID dispid, DISPPARAMS * const pdispparams) override
    {
+#ifndef __APPLE__
       T* const pT = (T*)this;
       pT->Lock();
       IUnknown** pp = IConnectionPointImpl<T, psrcid, CComDynamicUnkArray>::m_vec.begin();
@@ -90,6 +101,7 @@ public:
          ++pp;
       }
       pT->Unlock();
+#endif
 
       return S_OK;
    }

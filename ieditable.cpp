@@ -1,4 +1,4 @@
-#include "StdAfx.h"
+#include "stdafx.h"
 
 
 IEditable::IEditable()
@@ -190,7 +190,7 @@ char *IEditable::GetName()
 {
     WCHAR *elemName = nullptr;
     if (GetItemType() == eItemDecal)
-        return "Decal";
+        return (char*) "Decal";
 
     IScriptable *const pscript = GetScriptable();
     if (pscript)
@@ -205,7 +205,7 @@ char *IEditable::GetName()
     return nullptr;
 }
 
-void IEditable::SetName(const std::string& name)
+void IEditable::SetName(const string& name)
 {
     if (name.empty())
         return;
@@ -229,8 +229,10 @@ void IEditable::SetName(const std::string& name)
     // first update name in the codeview before updating it in the element itself
     pt->m_pcv->ReplaceName(GetScriptable(), namePtr);
     lstrcpynW(GetScriptable()->m_wzName, namePtr, sizeof(GetScriptable()->m_wzName)/sizeof(GetScriptable()->m_wzName[0]));
+#ifndef __APPLE__
     g_pvp->GetLayersListDialog()->UpdateElement(this);
     g_pvp->SetPropSel(GetPTable()->m_vmultisel);
+#endif
     STOPUNDO
 }
 
@@ -239,9 +241,11 @@ void IEditable::InitScript()
    if (!GetScriptable())
       return;
 
+#ifndef __APPLE__
    if (GetScriptable()->m_wzName[0] == '\0')
       // Just in case something screws up - not good having a null script name
       swprintf_s(GetScriptable()->m_wzName, L"%d", (long)this);
+#endif
 
    GetPTable()->m_pcv->AddItem(GetScriptable(), false);
 }

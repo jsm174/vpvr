@@ -32,7 +32,7 @@ public:
    Shape m_shape;
    //float m_borderwidth;
    //COLORREF m_bordercolor;
-   std::string m_szSurface;
+   string m_szSurface;
 
    float m_depthBias; // for determining depth sorting
    float m_bulbHaloHeight;
@@ -66,6 +66,7 @@ class Light :
 public:
    Light();
    virtual ~Light();
+
    BEGIN_COM_MAP(Light)
       COM_INTERFACE_ENTRY(IDispatch)
       COM_INTERFACE_ENTRY(ILight)
@@ -150,7 +151,7 @@ private:
    {
    public:
       LightCenter(Light *plight) : m_plight(plight) { }
-      virtual HRESULT GetTypeName(BSTR *pVal) { return m_plight->GetTypeName(pVal); }
+      virtual HRESULT GetTypeName(BSTR *pVal) { return m_plight->GetTypeName(pVal); }   
       virtual IDispatch *GetDispatch() { return m_plight->GetDispatch(); }
       virtual const IDispatch *GetDispatch() const { return m_plight->GetDispatch(); }
 
@@ -199,7 +200,7 @@ private:
    IndexBuffer  *m_bulbSocketIndexBuffer;
    PropertyPane *m_propVisual;
 
-   std::vector<RenderVertex> m_vvertex;
+   vector<RenderVertex> m_vvertex;
 
    float m_initSurfaceHeight;
    float m_maxDist;

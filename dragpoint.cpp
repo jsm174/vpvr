@@ -84,20 +84,26 @@ void IHaveDragPoints::FlipPointX(const Vertex2D& pvCenter)
 
 void IHaveDragPoints::RotateDialog()
 {
+#ifndef __APPLE__
    DialogBoxParam(g_pvp->theInstance, MAKEINTRESOURCE(IDD_ROTATE),
        g_pvp->GetHwnd(), RotateProc, (size_t)this->GetIEditable()->GetISelect());//(long)this);
+#endif
 }
 
 void IHaveDragPoints::ScaleDialog()
 {
+#ifndef __APPLE__
    DialogBoxParam(g_pvp->theInstance, MAKEINTRESOURCE(IDD_SCALE),
        g_pvp->GetHwnd(), ScaleProc, (size_t)this->GetIEditable()->GetISelect());
+#endif
 }
 
 void IHaveDragPoints::TranslateDialog()
 {
+#ifndef __APPLE__
    DialogBoxParam(g_pvp->theInstance, MAKEINTRESOURCE(IDD_TRANSLATE),
        g_pvp->GetHwnd(), TranslateProc, (size_t)this->GetIEditable()->GetISelect());
+#endif
 }
 
 void IHaveDragPoints::RotatePoints(const float ang, const Vertex2D& pvCenter, const bool useElementCenter)
@@ -259,10 +265,10 @@ void IHaveDragPoints::ReverseOrder()
 // Ported at: VisualPinball.Engine/Math/DragPoint.cs
 //
 
-void IHaveDragPoints::GetTextureCoords(const std::vector<RenderVertex> & vv, float **ppcoords)
+void IHaveDragPoints::GetTextureCoords(const vector<RenderVertex> & vv, float **ppcoords)
 {
-   std::vector<int> vitexpoints;
-   std::vector<int> virenderpoints;
+   vector<int> vitexpoints;
+   vector<int> virenderpoints;
    bool noCoords = false;
 
    const int cpoints = (int)vv.size();
@@ -467,9 +473,11 @@ void DragPoint::PutCenter(const Vertex2D& pv)
 
 void DragPoint::EditMenu(CMenu &menu)
 {
+#ifndef __APPLE__
    menu.CheckMenuItem(ID_POINTMENU_SMOOTH, MF_BYCOMMAND | (m_smooth ? MF_CHECKED : MF_UNCHECKED));
    //EnableMenuItem(hmenu, ID_POINTMENU_SLINGSHOT, MF_BYCOMMAND | (m_fSmooth ? MF_GRAYED : MF_ENABLED));
    menu.CheckMenuItem(ID_POINTMENU_SLINGSHOT, MF_BYCOMMAND | ((m_slingshot && !m_smooth) ? MF_CHECKED : MF_UNCHECKED));
+#endif
 }
 
 void DragPoint::Delete()
@@ -695,6 +703,7 @@ STDMETHODIMP DragPoint::put_TextureCoordinateU(float newVal)
 int rotateApplyCount = 0;
 INT_PTR CALLBACK RotateProc(HWND hwndDlg, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
+#ifndef __APPLE__
    ISelect *psel;
 
    switch (uMsg)
@@ -1008,6 +1017,7 @@ INT_PTR CALLBACK ScaleProc(HWND hwndDlg, UINT uMsg, WPARAM wParam, LPARAM lParam
       }
       break;
    }
+#endif
 
    return FALSE;
 }
@@ -1015,6 +1025,7 @@ INT_PTR CALLBACK ScaleProc(HWND hwndDlg, UINT uMsg, WPARAM wParam, LPARAM lParam
 static int translateApplyCount = 0;
 INT_PTR CALLBACK TranslateProc(HWND hwndDlg, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
+#ifndef __APPLE__
    ISelect *psel;
 
    switch (uMsg)
@@ -1099,6 +1110,7 @@ INT_PTR CALLBACK TranslateProc(HWND hwndDlg, UINT uMsg, WPARAM wParam, LPARAM lP
       }
       break;
    }
+#endif
 
    return FALSE;
 }

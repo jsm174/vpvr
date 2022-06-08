@@ -1,5 +1,9 @@
-#include "StdAfx.h"
+#include "stdafx.h"
 #include <time.h>
+
+#ifdef __APPLE__
+#include <chrono>
+#endif
 
 //#define USE_LOWLEVEL_PRECISION_SETTING // does allow to pick lower windows timer resolutions than 1ms (usually 0.5ms as of win10/2020) via undocumented API calls, BUT lead to sound distortion on some setups in PinMAME, so also disable it in VPX for now
 
@@ -18,11 +22,14 @@ static HMODULE hNtDll = nullptr;
 static ULONG win_timer_old_period = -1;
 #endif
 
+#ifndef __APPLE__
 static TIMECAPS win_timer_caps;
 static MMRESULT win_timer_result = TIMERR_NOCANDO;
+#endif
 
 void set_lowest_possible_win_timer_resolution()
 {
+#ifndef __APPLE__
 	// First crank up the multimedia timer resolution to its max
 	// this gives the system much finer timeslices (usually 1-2ms)
 	win_timer_result = timeGetDevCaps(&win_timer_caps, sizeof(win_timer_caps));
@@ -47,6 +54,7 @@ void set_lowest_possible_win_timer_resolution()
 		}
 	}
 #endif
+#endif
 }
 
 void restore_win_timer_resolution()
@@ -65,11 +73,13 @@ void restore_win_timer_resolution()
 	}
 #endif
 
+#ifndef __APPLE__
 	if (win_timer_result == TIMERR_NOERROR)
 	{
 		timeEndPeriod(win_timer_caps.wPeriodMin);
 		win_timer_result = TIMERR_NOCANDO;
 	}
+#endif
 }
 
 //
@@ -83,29 +93,47 @@ void wintimer_init()
 {
    sTimerInit = 1;
 
+#ifndef __APPLE__
    QueryPerformanceFrequency(&TimerFreq);
    QueryPerformanceCounter(&sTimerStart);
+#endif
 }
 
 unsigned long long usec()
 {
    if (sTimerInit == 0) return 0;
 
+#ifndef __APPLE__
    LARGE_INTEGER TimerNow;
    QueryPerformanceCounter(&TimerNow);
    const unsigned long long cur_tick = (unsigned long long)(TimerNow.QuadPart - sTimerStart.QuadPart);
    return ((unsigned long long)TimerFreq.QuadPart < 100000000ull) ? (cur_tick * 1000000ull / (unsigned long long)TimerFreq.QuadPart)
       : (cur_tick * 1000ull / ((unsigned long long)TimerFreq.QuadPart / 1000ull));
+#else
+    return std::chrono::duration_cast<std::chrono::microseconds>(
+                std::chrono::time_point_cast<std::chrono::microseconds>(
+                    std::chrono::high_resolution_clock::now())
+                    .time_since_epoch())
+        .count();
+#endif
 }
 
 U32 msec()
 {
    if (sTimerInit == 0) return 0;
 
+#ifndef __APPLE__
    LARGE_INTEGER TimerNow;
    QueryPerformanceCounter(&TimerNow);
    const LONGLONG cur_tick = TimerNow.QuadPart - sTimerStart.QuadPart;
    return (U32)((unsigned long long)cur_tick * 1000ull / (unsigned long long)TimerFreq.QuadPart);
+#else
+    return std::chrono::duration_cast<std::chrono::milliseconds>(
+                std::chrono::time_point_cast<std::chrono::milliseconds>(
+                    std::chrono::high_resolution_clock::now())
+                    .time_since_epoch())
+        .count();
+#endif
 }
 
 // tries(!) to be as exact as possible at the cost of potentially causing trouble with other threads/cores due to OS madness
@@ -115,6 +143,7 @@ void uSleep(const unsigned long long u)
 {
    if (sTimerInit == 0) return;
 
+#ifndef __APPLE__
    LARGE_INTEGER TimerNow;
    QueryPerformanceCounter(&TimerNow);
    LARGE_INTEGER TimerEnd;
@@ -130,6 +159,7 @@ void uSleep(const unsigned long long u)
 
       QueryPerformanceCounter(&TimerNow);
    }
+#endif
 }
 
 // can sleep too long by 1000 to 2000 (=1 to 2ms)
@@ -139,6 +169,7 @@ void uOverSleep(const unsigned long long u)
 {
    if (sTimerInit == 0) return;
 
+#ifndef __APPLE__
    LARGE_INTEGER TimerNow;
    QueryPerformanceCounter(&TimerNow);
    LARGE_INTEGER TimerEnd;
@@ -149,6 +180,7 @@ void uOverSleep(const unsigned long long u)
       Sleep(1); // really pause thread for 1-2ms (depending on OS)
       QueryPerformanceCounter(&TimerNow);
    }
+#endif
 }
 
 //
@@ -332,31 +364,31 @@ int _tmain(int argc, _TCHAR* argv[])
     const double rlong = lon * (M_PI / 180.);
 
     const double _AngleOfDay = AngleOfDay(day, month, year);
-    std::cout << "Angle of day: " << _AngleOfDay << "\n";
+    std::cout << "Angle of day: " << _AngleOfDay << std::endl;
 
     const double _Declination = SolarDeclination(_AngleOfDay);
-    std::cout << "Declination (Delta): " << _Declination << "\n";
+    std::cout << "Declination (Delta): " << _Declination << std::endl;
 
     const double _EquationOfTime = EquationOfTimeRadian(_AngleOfDay) * (12. / M_PI);
-    std::cout << "Equation Of Time (Delta): " << _EquationOfTime << "\n";
+    std::cout << "Equation Of Time (Delta): " << _EquationOfTime << std::endl;
 
     const double _DayDurationHours = DayDurationHours(_Declination, rlat);
-    std::cout << "Day duration: " << _DayDurationHours << "\n";
+    std::cout << "Day duration: " << _DayDurationHours << std::endl;
 
     const double _OrbitalExcentricity = OrbitalExcentricity(_AngleOfDay);
-    std::cout << "Excentricity: " << _OrbitalExcentricity << "\n";
+    std::cout << "Excentricity: " << _OrbitalExcentricity << std::endl;
 
     const double _TheoreticRadiation = TheoreticRadiation(day, month, year, rlat);
-    std::cout << "Theoretical radiation: " << _TheoreticRadiation << "\n";
+    std::cout << "Theoretical radiation: " << _TheoreticRadiation << std::endl;
 
     const double _MaxTheoreticRadiation = MaxTheoreticRadiation(year, rlat);
-    std::cout << "Max./Year Theoretical radiation: " << _MaxTheoreticRadiation << "\n";
+    std::cout << "Max./Year Theoretical radiation: " << _MaxTheoreticRadiation << std::endl;
 
     const double _SunriseLocalTime = SunsetSunriseLocalTime(day, month, year, rlong, rlat, true);
-    std::cout << "Sunrise Local Time: " << _SunriseLocalTime << "\n";
+    std::cout << "Sunrise Local Time: " << _SunriseLocalTime << std::endl;
 
     const double _SunsetLocalTime = SunsetSunriseLocalTime(day, month, year, rlong, rlat, false);
-    std::cout << "Sunset Local Time: " << _SunsetLocalTime << "\n";
+    std::cout << "Sunset Local Time: " << _SunsetLocalTime << std::endl;
 
     return 0;
 }

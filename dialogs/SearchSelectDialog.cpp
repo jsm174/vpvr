@@ -247,9 +247,9 @@ void SearchSelectDialog::OnCancel()
    CDialog::OnCancel();
 }
 
-bool SearchSelectDialog::IsValidString(const std::string &name)
+bool SearchSelectDialog::IsValidString(const string &name)
 {
-   return (!name.empty() && name.find_first_not_of("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789 ._-") == std::string::npos);
+   return (!name.empty() && name.find_first_not_of("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789 ._-") == string::npos);
 }
 
 void SearchSelectDialog::AddSearchItemToList(IEditable * const piedit, int idx)
@@ -295,7 +295,7 @@ void SearchSelectDialog::AddSearchItemToList(IEditable * const piedit, int idx)
       secondImage.clear();
       if (IsValidString(sur->m_d.m_szSideMaterial))
          secondImage = sur->m_d.m_szSideMaterial;
-      std::string thirdImage;
+      string thirdImage;
       if (IsValidString(sur->m_d.m_szSlingShotMaterial))
           thirdImage = sur->m_d.m_szSlingShotMaterial;
       if (!secondImage.empty())
@@ -349,7 +349,7 @@ void SearchSelectDialog::AddSearchItemToList(IEditable * const piedit, int idx)
       ListView_SetItemText(m_hElementList, idx, 8, ramp->m_isVisible ? usedStringYes : usedStringNo);
       ListView_SetItemText(m_hElementList, idx, 9, ramp->m_d.m_tdr.m_TimerEnabled ? usedStringYes : usedStringNo);
       char textBuf[MAXNAMEBUFFER];
-      sprintf_s(textBuf, "%.03f", ramp->m_d.m_depthBias);
+      sprintf_s(textBuf, sizeof(textBuf), "%.03f", ramp->m_d.m_depthBias);
       ListView_SetItemText(m_hElementList, idx, 10, textBuf);
       ListView_SetItemText(m_hElementList, idx, 11, ramp->isHabitrail() /*&& !ramp->m_ptable->GetMaterial(ramp->m_d.m_szMaterial)->m_bOpacityActive*/ ? usedStringYes : usedStringNo); //!!
       ListView_SetItemText(m_hElementList, idx, 12, ramp->m_d.m_reflectionEnabled ? usedStringYes : usedStringNo);
@@ -378,7 +378,7 @@ void SearchSelectDialog::AddSearchItemToList(IEditable * const piedit, int idx)
       ListView_SetItemText(m_hElementList, idx, 8, flasher->m_isVisible ? usedStringYes : usedStringNo);
       ListView_SetItemText(m_hElementList, idx, 9, flasher->m_d.m_tdr.m_TimerEnabled ? usedStringYes : usedStringNo);
       char textBuf[MAXNAMEBUFFER];
-      sprintf_s(textBuf, "%.03f", flasher->m_d.m_depthBias);
+      sprintf_s(textBuf, sizeof(textBuf), "%.03f", flasher->m_d.m_depthBias);
       ListView_SetItemText(m_hElementList, idx, 10, textBuf);
       ListView_SetItemText(m_hElementList, idx, 11, /*flasher->StaticRendering() ? usedStringYes : usedStringNo*/ "N/A");
       ListView_SetItemText(m_hElementList, idx, 12, /*flasher->m_d.m_reflectionEnabled ? usedStringYes : usedStringNo*/ "N/A");
@@ -476,7 +476,7 @@ void SearchSelectDialog::AddSearchItemToList(IEditable * const piedit, int idx)
       ListView_SetItemText(m_hElementList, idx, 8, light->m_isVisible ? usedStringYes : usedStringNo);
       ListView_SetItemText(m_hElementList, idx, 9, light->m_d.m_tdr.m_TimerEnabled ? usedStringYes : usedStringNo);
       char textBuf[MAXNAMEBUFFER];
-      sprintf_s(textBuf, "%.03f", light->m_d.m_depthBias);
+      sprintf_s(textBuf, sizeof(textBuf), "%.03f", light->m_d.m_depthBias);
       ListView_SetItemText(m_hElementList, idx, 10, textBuf);
       ListView_SetItemText(m_hElementList, idx, 11, /*light->StaticRendering() ? usedStringYes : usedStringNo*/ "N/A");
       ListView_SetItemText(m_hElementList, idx, 12, light->m_d.m_reflectionEnabled ? usedStringYes : usedStringNo);
@@ -490,10 +490,10 @@ void SearchSelectDialog::AddSearchItemToList(IEditable * const piedit, int idx)
       textBuf = firstImage;
       if (IsValidString(bumper->m_d.m_szCapMaterial))
          secondImage = bumper->m_d.m_szCapMaterial;
-      std::string thirdImage;
+      string thirdImage;
       if (IsValidString(bumper->m_d.m_szSkirtMaterial))
          thirdImage = bumper->m_d.m_szSkirtMaterial;
-      std::string fourthImage;
+      string fourthImage;
       if (IsValidString(bumper->m_d.m_szRingMaterial))
           fourthImage = bumper->m_d.m_szRingMaterial;
       if (!secondImage.empty())
@@ -693,7 +693,7 @@ void SearchSelectDialog::AddSearchItemToList(IEditable * const piedit, int idx)
       ListView_SetItemText(m_hElementList, idx, 8, primitive->m_isVisible ? usedStringYes : usedStringNo);
       ListView_SetItemText(m_hElementList, idx, 9, primitive->m_d.m_tdr.m_TimerEnabled ? usedStringYes : usedStringNo);
       char textBuf[MAXNAMEBUFFER];
-      sprintf_s(textBuf, "%.03f", primitive->m_d.m_depthBias);
+      sprintf_s(textBuf, sizeof(textBuf), "%.03f", primitive->m_d.m_depthBias);
       ListView_SetItemText(m_hElementList, idx, 10, textBuf);
       ListView_SetItemText(m_hElementList, idx, 11, primitive->m_d.m_staticRendering ? usedStringYes : usedStringNo);
       ListView_SetItemText(m_hElementList, idx, 12, primitive->m_d.m_reflectionEnabled ? usedStringYes : usedStringNo);
@@ -722,7 +722,7 @@ void SearchSelectDialog::AddSearchItemToList(IEditable * const piedit, int idx)
       ListView_SetItemText(m_hElementList, idx, 8, hitTarget->m_isVisible ? usedStringYes : usedStringNo);
       ListView_SetItemText(m_hElementList, idx, 9, hitTarget->m_d.m_tdr.m_TimerEnabled ? usedStringYes : usedStringNo);
       char textBuf[MAXNAMEBUFFER];
-      sprintf_s(textBuf, "%.03f", hitTarget->m_d.m_depthBias);
+      sprintf_s(textBuf, sizeof(textBuf), "%.03f", hitTarget->m_d.m_depthBias);
       ListView_SetItemText(m_hElementList, idx, 10, textBuf);
       ListView_SetItemText(m_hElementList, idx, 11, /*hitTarget->StaticRendering() ? usedStringYes : usedStringNo*/ "N/A");
       ListView_SetItemText(m_hElementList, idx, 12, hitTarget->m_d.m_reflectionEnabled ? usedStringYes : usedStringNo);

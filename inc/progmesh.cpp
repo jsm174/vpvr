@@ -14,7 +14,9 @@
 #include <cstdlib>
 #define WIN32_LEAN_AND_MEAN
 #define NOMINMAX
+#ifndef __APPLE__
 #include <windows.h>
+#endif
 #include <cassert>
 
 #include "progmesh.h"

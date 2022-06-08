@@ -434,7 +434,7 @@ void HitTarget::EndPlay()
 // Calculation
 //////////////////////////////
 
-void HitTarget::GenerateMesh(std::vector<Vertex3D_NoTex2> &buf)
+void HitTarget::GenerateMesh(vector<Vertex3D_NoTex2> &buf)
 {
    SetMeshType(m_d.m_targetType);
 
@@ -494,6 +494,7 @@ void HitTarget::TransformVertices()
 
 void HitTarget::ExportMesh(ObjLoader& loader)
 {
+#ifndef __APPLE__
    char name[sizeof(m_wzName)/sizeof(m_wzName[0])];
    WideCharToMultiByteNull(CP_ACP, 0, m_wzName, -1, name, sizeof(name), nullptr, nullptr);
 
@@ -511,6 +512,7 @@ void HitTarget::ExportMesh(ObjLoader& loader)
    loader.UseTexture(m_d.m_szMaterial);
    loader.WriteFaceInfoList(m_indices, m_numIndices);
    loader.UpdateFaceOffset(m_numVertices);
+#endif
 }
 
 

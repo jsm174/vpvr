@@ -304,7 +304,7 @@ BOOL MaterialDialog::OnCommand(WPARAM wParam, LPARAM lParam)
       }
       case IDC_IMPORT:
       {
-         std::vector<std::string> szFilename;
+         vector<string> szFilename;
          string szInitialDir;
 
          const HRESULT hr = LoadValue("RecentDir", "MaterialDir", szInitialDir);
@@ -346,7 +346,7 @@ BOOL MaterialDialog::OnCommand(WPARAM wParam, LPARAM lParam)
             fclose(f);
 
             const size_t index = szFilename[0].find_last_of('\\');
-            if (index != std::string::npos)
+            if (index != string::npos)
                SaveValue("RecentDir", "MaterialDir", szFilename[0].substr(0, index));
 
             pt->SetNonUndoableDirty(eSaveDirty);
@@ -435,9 +435,9 @@ BOOL MaterialDialog::OnCommand(WPARAM wParam, LPARAM lParam)
 
                const string szFilename(ofn.lpstrFile);
                const size_t index = szFilename.find_last_of('\\');
-               if (index != std::string::npos)
+               if (index != string::npos)
                {
-                   const std::string newInitDir(szFilename.substr(0, index));
+                   const string newInitDir(szFilename.substr(0, index));
                    SaveValue("RecentDir", "MaterialDir", newInitDir);
                }
             }
@@ -552,7 +552,7 @@ INT_PTR MaterialDialog::DialogProc(UINT uMsg, WPARAM wParam, LPARAM lParam)
                   int suffix = 1;
                   do
                   {
-                     sprintf_s(textBuf, "%s%i", pinfo->item.pszText, suffix);
+                     sprintf_s(textBuf, sizeof(textBuf), "%s%i", pinfo->item.pszText, suffix);
                      suffix++;
                   } while (!pt->IsMaterialNameUnique(textBuf));
                   pmat->m_szName = textBuf;

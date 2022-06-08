@@ -19,11 +19,11 @@ public:
    float m_ringDropOffset;
    U32 m_time_msec;
    TimerDataRoot m_tdr;
-   std::string m_szCapMaterial;
-   std::string m_szBaseMaterial;
-   std::string m_szSkirtMaterial;
-   std::string m_szRingMaterial;
-   std::string m_szSurface;
+   string m_szCapMaterial;
+   string m_szBaseMaterial;
+   string m_szSkirtMaterial;
+   string m_szRingMaterial;
+   string m_szSurface;
    bool m_capVisible;
    bool m_baseVisible;
    bool m_ringVisible;
@@ -72,9 +72,9 @@ public:
    BEGIN_CONNECTION_POINT_MAP(Bumper)
       CONNECTION_POINT_ENTRY(DIID_IBumperEvents)
    END_CONNECTION_POINT_MAP()
-   
+
    DECLARE_REGISTRY_RESOURCEID(IDR_BUMPER)
-   
+
    // ISupportsErrorInfo
    STDMETHOD(InterfaceSupportsErrorInfo)(REFIID riid);
    

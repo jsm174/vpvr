@@ -57,6 +57,7 @@ static void NormalizeNormals()
 
 bool ObjLoader::Load(const string& filename, const bool flipTv, const bool convertToLeftHanded)
 {
+#ifndef __APPLE__
    FILE* f;
    if ((fopen_s(&f, filename.c_str(), "r") != 0) || !f)
       return false;
@@ -70,7 +71,7 @@ bool ObjLoader::Load(const string& filename, const bool flipTv, const bool conve
    m_indices.clear();
 
    struct VertInfo { int v; int t; int n; };
-   std::vector<VertInfo> faceVerts;
+   vector<VertInfo> faceVerts;
 
    // need some small data type 
    while (true)
@@ -254,6 +255,9 @@ Error:
    m_tmpFaces.clear();
    fclose(f);
    return false;
+#else
+   return false;
+#endif
 }
 
 void ObjLoader::Save(const string& filename, const string& description, const Mesh& mesh)
@@ -306,7 +310,7 @@ void ObjLoader::Save(const string& filename, const string& description, const Me
       char number[32] = { 0 };
       for (unsigned int i = 0; i < mesh.m_animationFrames.size(); i++)
       {
-         std::vector<Vertex3D_NoTex2> vertsTmp = mesh.m_vertices;
+         vector<Vertex3D_NoTex2> vertsTmp = mesh.m_vertices;
 
          for (unsigned int t = 0; t < mesh.NumVertices(); t++)
          {
@@ -318,7 +322,7 @@ void ObjLoader::Save(const string& filename, const string& description, const Me
             vertsTmp[t].ny = vi.ny;
             vertsTmp[t].nz = vi.nz;
          }
-         sprintf_s(number, "%05u", i);
+         sprintf_s(number, sizeof(number), "%05u", i);
          const string fname = name + '_' + number + ".obj";
          ExportStart(fname);
          fprintf_s(m_fHandle, "# Visual Pinball OBJ file\n");
@@ -333,6 +337,7 @@ void ObjLoader::Save(const string& filename, const string& description, const Me
 
 bool ObjLoader::ExportStart(const string& filename)
 {
+#ifndef __APPLE__
    const int len = min((int)filename.length(), MAX_PATH - 1);
    int i;
    for (i = len; i >= 0; i--)
@@ -371,6 +376,7 @@ bool ObjLoader::ExportStart(const string& filename)
    m_faceIndexOffset = 0;
    fprintf_s(m_fHandle, "# Visual Pinball table OBJ file\n");
    fprintf_s(m_fHandle, "mtllib %s\n", nameOnly);
+#endif
    return true;
 }
 
@@ -400,7 +406,7 @@ void ObjLoader::WriteVertexInfo(const Vertex3D_NoTex2* verts, unsigned int numVe
    }
 }
 
-void ObjLoader::WriteFaceInfo(const std::vector<WORD>& faces)
+void ObjLoader::WriteFaceInfo(const vector<WORD>& faces)
 {
    for (size_t i = 0; i < faces.size(); i += 3)
    {
@@ -410,7 +416,7 @@ void ObjLoader::WriteFaceInfo(const std::vector<WORD>& faces)
    }
 }
 
-void ObjLoader::WriteFaceInfoLong(const std::vector<unsigned int>& faces)
+void ObjLoader::WriteFaceInfoLong(const vector<unsigned int>& faces)
 {
    for (size_t i = 0; i < faces.size(); i += 3)
    {
@@ -434,6 +440,7 @@ void ObjLoader::WriteFaceInfoList(const WORD* faces, const unsigned int numIndic
 
 bool ObjLoader::LoadMaterial(const string& filename, Material* const mat)
 {
+#ifndef __APPLE__
    FILE* f;
    if ((fopen_s(&f, filename.c_str(), "r") != 0) || !f)
       return false;
@@ -507,6 +514,7 @@ bool ObjLoader::LoadMaterial(const string& filename, Material* const mat)
       }
    }
    fclose(f);
+#endif
    return true;
 }
 

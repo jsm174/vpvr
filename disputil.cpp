@@ -41,6 +41,7 @@ void EnumEventsFromDispatch(IDispatch *pdisp, EventListCallback Callback, LPARAM
 
                // Get Name
                {
+#ifndef __APPLE__
                   BSTR *rgstr = (BSTR *)CoTaskMemAlloc(6 * sizeof(BSTR *));
 
                   unsigned int cnames;
@@ -57,6 +58,7 @@ void EnumEventsFromDispatch(IDispatch *pdisp, EventListCallback Callback, LPARAM
                   }
 
                   CoTaskMemFree(rgstr);
+#endif
                }
 
                ptiChild->ReleaseFuncDesc(pfd);

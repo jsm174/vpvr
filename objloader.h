@@ -32,8 +32,8 @@ public:
       fprintf_s(m_fHandle, "o %s\n", objname.c_str());
    }
    void WriteVertexInfo(const Vertex3D_NoTex2* verts, unsigned int numVerts);
-   void WriteFaceInfo(const std::vector<WORD>& faces);
-   void WriteFaceInfoLong(const std::vector<unsigned int>& faces);
+   void WriteFaceInfo(const vector<WORD>& faces);
+   void WriteFaceInfoLong(const vector<unsigned int>& faces);
    void WriteFaceInfoList(const WORD* faces, const unsigned int numIndices);
    void UseTexture(const string& texelName)
    {
@@ -42,13 +42,21 @@ public:
    bool LoadMaterial(const string& filename, Material* const mat);
    void WriteMaterial(const string& texelName, const string& texelFilename, const Material* const mat);
 
-   std::vector<Vertex3D_NoTex2>& GetVertices()
+   vector<Vertex3D_NoTex2>& GetVertices()
    {
+#ifndef __APPLE__ /* FIXME */
       return std::move(m_verts);
+#else
+      return m_verts;
+#endif
    }
-   std::vector<unsigned int>& GetIndices()
+   vector<unsigned int>& GetIndices()
    {
+#ifndef __APPLE__ /* FIXME */
       return std::move(m_indices);
+#else
+      return m_indices;
+#endif
    }
 private:
 

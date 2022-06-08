@@ -409,7 +409,7 @@ void PropertyDialog::DeleteAllTabs()
     m_backglassView = false;
 }
 
-void PropertyDialog::UpdateTextureComboBox(const vector<Texture *>& contentList, const CComboBox &combo, const std::string &selectName)
+void PropertyDialog::UpdateTextureComboBox(const vector<Texture *>& contentList, const CComboBox &combo, const string &selectName)
 {
     bool texelFound = false;
     for (const auto texel : contentList)
@@ -427,7 +427,7 @@ void PropertyDialog::UpdateTextureComboBox(const vector<Texture *>& contentList,
     combo.SetCurSel(combo.FindStringExact(1, selectName.c_str()));
 }
 
-void PropertyDialog::UpdateMaterialComboBox(const vector<Material *>& contentList, const CComboBox &combo, const std::string &selectName)
+void PropertyDialog::UpdateMaterialComboBox(const vector<Material *>& contentList, const CComboBox &combo, const string &selectName)
 {
     bool matFound = false;
     for (const auto mat : contentList)
@@ -575,12 +575,12 @@ void PropertyDialog::UpdateTabs(VectorProtected<ISelect> &pvsel)
         CComBSTR bstr;
         psel->GetTypeName(&bstr);
         WideCharToMultiByteNull(CP_ACP, 0, bstr, -1, name, 64, nullptr, nullptr);
-        sprintf_s(header, "%s(%d)", name, pvsel.size());
+        sprintf_s(header, sizeof(header), "%s(%d)", name, pvsel.size());
 
         if (collection[0] != '\0')
-            sprintf_s(header, "%s [%s](%d)", collection, name, pvsel.size());
+            sprintf_s(header, sizeof(header), "%s [%s](%d)", collection, name, pvsel.size());
         else
-            sprintf_s(header, "%s(%d)", name, pvsel.size());
+            sprintf_s(header, sizeof(header), "%s(%d)", name, pvsel.size());
 
         m_nameEdit.SetWindowText(header);
         m_nameEdit.SetReadOnly();

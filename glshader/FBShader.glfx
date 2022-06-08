@@ -1,6 +1,10 @@
 ////GLOBAL
 #version 450 core
 
+#ifdef __APPLE__
+#define const
+#endif
+
 ////VERTEX
 
 uniform vec4 quadOffsetScale;//.xy =>Offset from center .wz =>Scale (1.0 is fullscreen)

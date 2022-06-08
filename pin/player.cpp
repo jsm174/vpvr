@@ -5,6 +5,9 @@
  #include "imgui/imgui.h"
  #ifdef ENABLE_SDL
   #include "imgui/imgui_impl_opengl3.h"
+#ifdef __APPLE__
+  #include "imgui/imgui_impl_sdl.h"
+#endif
  #else
   #include "imgui/imgui_impl_dx9.h"
  #endif
@@ -72,12 +75,16 @@ public:
 #include "../meshes/ballMesh.h"
 #include "Shader.h"
 #include "typedefs3D.h"
+#ifndef __APPLE__
 #include "captureExt.h"
+#endif
 #ifndef ENABLE_SDL
  #include "BallShader.h"
 #endif
 #include "../math/bluenoise.h"
+#ifndef __APPLE__
 #include "../inc/winsdk/legacy_touch.h"
+#endif
 
 
 constexpr RECT touchregion[8] = { //left,top,right,bottom (in % of screen)
@@ -118,7 +125,7 @@ INT_PTR CALLBACK PauseProc(HWND hwndDlg, UINT uMsg, WPARAM wParam, LPARAM lParam
 
 Player::Player(const bool cameraMode, PinTable * const ptable) : m_cameraMode(cameraMode)
 {
-#if defined(_M_ARM64)
+#if defined(_M_ARM64) || defined(__APPLE__)
 #pragma message ( "Warning: No CPU float ignore denorm implemented" )
 #else
    {
@@ -414,8 +421,10 @@ void Player::PreRegisterClass(WNDCLASS& wc)
     wc.style = 0;
     wc.hInstance = g_pvp->theInstance;
     wc.lpszClassName = "VPPlayer"; // leave as-is as e.g. VPM relies on this
+#ifndef __APPLE__
     wc.hIcon = LoadIcon(g_pvp->theInstance, MAKEINTRESOURCE(IDI_TABLE));
     wc.hCursor = LoadCursor(nullptr, IDC_ARROW);
+#endif
     wc.lpszMenuName = nullptr;
 }
 
@@ -434,6 +443,11 @@ void Player::PreCreate(CREATESTRUCT& cs)
         display = -1; // force primary monitor
     int x, y;
     getDisplaySetupByID(display, x, y, m_screenwidth, m_screenheight);
+
+#ifdef __APPLE__
+   m_screenwidth = 1024;
+   m_screenheight = 768;
+#endif
 
     m_width = LoadValueIntWithDefault("Player", "Width", m_fullScreen ? -1 : DEFAULT_PLAYER_WIDTH);
     m_height = LoadValueIntWithDefault("Player", "Height", m_width * 9 / 16);
@@ -482,11 +496,13 @@ void Player::PreCreate(CREATESTRUCT& cs)
             r.top = yn;
             r.right = xn + m_width;
             r.bottom = yn + m_height;
+#ifndef __APPLE__
             if (MonitorFromRect(&r, MONITOR_DEFAULTTONULL) != nullptr) // window is visible somewhere, so use the coords from the registry
             {
                 x = xn;
                 y = yn;
             }
+#endif
         }
     }
 
@@ -529,6 +545,7 @@ void Player::PreCreate(CREATESTRUCT& cs)
 
 void Player::OnInitialUpdate()
 {
+#ifndef __APPLE__
     // Check for Touch support
     m_supportsTouch = ((GetSystemMetrics(SM_DIGITIZER) & NID_READY) != 0) && ((GetSystemMetrics(SM_DIGITIZER) & NID_MULTI_INPUT) != 0)
         && (GetSystemMetrics(SM_MAXIMUMTOUCHES) != 0);
@@ -596,12 +613,15 @@ void Player::OnInitialUpdate()
 
         SetWindowFeedbackSetting(GetHwnd(), FEEDBACK_GESTURE_PRESSANDTAP, 0, sizeof(enabled), &enabled);
     }
+#endif
 
     mixer_init(GetHwnd());
     hid_init();
 
+#ifndef __APPLE__
     if (!m_fullScreen) // see above
         SetCursorPos(400, 999999);
+#endif
 
     const HRESULT result = Init();
     if (result != S_OK)
@@ -610,10 +630,12 @@ void Player::OnInitialUpdate()
 
 void Player::Shutdown()
 {
+#ifndef __APPLE__
 #ifdef ENABLE_SDL
    Detach();
 #endif
    captureStop();
+#endif
 
 #ifdef USE_IMGUI
  #ifdef ENABLE_SDL
@@ -621,7 +643,11 @@ void Player::Shutdown()
  #else
    ImGui_ImplDX9_Shutdown();
  #endif
+#ifndef __APPLE__
    ImGui_ImplWin32_Shutdown();
+#else
+   ImGui_ImplSDL2_Shutdown();
+#endif
    ImPlot::DestroyContext();
    ImGui::DestroyContext();
 #endif
@@ -1219,7 +1245,7 @@ HRESULT Player::PreInit()
    if (hr != S_OK)
    {
       char szfoo[64];
-      sprintf_s(szfoo, "Pin3D InitRenderDevice Error code: %x", hr);
+      sprintf_s(szfoo, sizeof(szfoo), "Pin3D InitRenderDevice Error code: %x", hr);
       ShowError(szfoo);
    }
    return hr;
@@ -1280,7 +1306,7 @@ HRESULT Player::Init()
    if (hr != S_OK)
    {
       char szfoo[64];
-      sprintf_s(szfoo, "InitPin3D Error code: %x", hr);
+      sprintf_s(szfoo, sizeof(szfoo), "InitPin3D Error code: %x", hr);
       ShowError(szfoo);
       return hr;
    }
@@ -1295,8 +1321,12 @@ HRESULT Player::Init()
    display = (display < getNumberOfDisplays()) ? display : -1;
 
    getDisplaySetupByID(display, x, y, m_screenwidth, m_screenheight);
-   if (m_fullScreen)
+
+   if (m_fullScreen) {
+#ifndef __APPLE__
       SetWindowPos(nullptr, x, y, m_screenwidth, m_screenheight, SWP_NOOWNERZORDER | SWP_NOZORDER | SWP_NOACTIVATE | SWP_NOMOVE);
+#endif
+   }
    else
    {
       m_refreshrate = 0; // The default
@@ -1329,11 +1359,13 @@ HRESULT Player::Init()
             xPos = x+xTemp;
             yPos = y+yTemp;
          }
+#ifndef __APPLE__
          m_showWindowedCaption = false;
          const int windowflags = WS_POPUP;
          SetWindowLong(GetHwnd(), GWL_STYLE, windowflags);
          SetWindowPos(HWND_TOP, xPos, yPos, m_width, m_height, SWP_NOOWNERZORDER | SWP_NOZORDER | SWP_NOACTIVATE | SWP_FRAMECHANGED);
          ShowWindow(SW_SHOWNORMAL);
+#endif
       }
    }
 #else
@@ -1343,6 +1375,7 @@ HRESULT Player::Init()
 
    m_pininput.Init(GetHwnd());
 
+#ifndef __APPLE__
    //
    const unsigned int lflip = get_vk(m_rgKeys[eLeftFlipperKey]);
    const unsigned int rflip = get_vk(m_rgKeys[eRightFlipperKey]);
@@ -1352,10 +1385,12 @@ HRESULT Player::Init()
       m_ptable->m_tblMirrorEnabled = true;
    else
       m_ptable->m_tblMirrorEnabled = LoadValueBoolWithDefault("Player", "mirror", false);
+#endif
 
    m_pin3d.m_pd3dPrimaryDevice->SetRenderStateCulling(RenderDevice::CULL_NONE); // re-init/thrash cache entry due to the hacky nature of the table mirroring
    m_pin3d.m_pd3dPrimaryDevice->SetRenderStateCulling(RenderDevice::CULL_CCW);
 
+#ifndef __APPLE__
    // if left flipper or shift hold during load, then swap DT/FS view (for quick testing)
    if (m_ptable->m_BG_current_set != 2 &&
        !m_ptable->m_tblMirrorEnabled &&
@@ -1367,6 +1402,7 @@ HRESULT Player::Init()
    }
    else
        m_toogle_DTFS = false;
+#endif
 
    m_pin3d.InitLayout(m_ptable->m_BG_enable_FSS);
 #ifdef USE_IMGUI
@@ -1374,8 +1410,16 @@ HRESULT Player::Init()
    ImGui::CreateContext();
    ImPlot::CreateContext();
    ImGuiIO& io = ImGui::GetIO();
+#ifdef __APPLE__
+   io.DisplaySize.x = 1024;
+   io.DisplaySize.y = 768;
+#endif
    io.IniFilename = nullptr;  //don't use an ini file for configuration
+#ifndef __APPLE__
    ImGui_ImplWin32_Init(GetHwnd());
+#else
+   ImGui_ImplSDL2_InitForOpenGL(m_pin3d.m_pd3dPrimaryDevice->m_sdl_playfieldHwnd, m_pin3d.m_pd3dPrimaryDevice->m_sdl_context);
+#endif
  #ifdef ENABLE_SDL
    ImGui_ImplOpenGL3_Init();
  #else
@@ -1456,7 +1500,7 @@ HRESULT Player::Init()
             pe->GetScriptable()->get_Name(&bstr);
             char * bstr2 = MakeChar(bstr);
             CHAR wzDst[256];
-            sprintf_s(wzDst, "Initializing Object-Physics %s...", bstr2);
+            sprintf_s(wzDst, sizeof(wzDst), "Initializing Object-Physics %s...", bstr2);
             delete [] bstr2;
             m_ptable->m_progressDialog.SetName(wzDst);
          }
@@ -1608,7 +1652,7 @@ HRESULT Player::Init()
 
 #ifdef DEBUG_BALL_SPIN
    {
-      std::vector< Vertex3D_TexelOnly > ballDbgVtx;
+      vector< Vertex3D_TexelOnly > ballDbgVtx;
       for (int j = -1; j <= 1; ++j)
       {
          const int numPts = (j == 0) ? 6 : 3;
@@ -1678,6 +1722,7 @@ HRESULT Player::Init()
    m_ptable->m_progressDialog.SetProgress(100);
    m_ptable->m_progressDialog.SetName("Starting...");
 
+#ifndef __APPLE__
    g_pvp->GetPropertiesDocker()->EnableWindow(FALSE);
    g_pvp->GetLayersDocker()->EnableWindow(FALSE);
    g_pvp->GetToolbarDocker()->EnableWindow(FALSE);
@@ -1695,6 +1740,7 @@ HRESULT Player::Init()
    SetFocus();
 
    LockForegroundWindow(true);
+#endif
 
    // Call Init -- TODO: what's the relation to ptable->FireVoidEvent() above?
    for (size_t i = 0; i < m_vhitables.size(); ++i)
@@ -1704,8 +1750,10 @@ HRESULT Player::Init()
          ph->GetEventProxyBase()->FireVoidEvent(DISPID_GameEvents_Init);
    }
 
+#ifndef __APPLE__
    if (m_detectScriptHang)
       g_pvp->PostWorkToWorkerThread(HANG_SNOOP_START, NULL);
+#endif
 
    // 0 means disable limiting of draw-ahead queue
    m_limiter.Init(m_pin3d.m_pd3dPrimaryDevice, m_maxPrerenderedFrames);
@@ -1715,8 +1763,10 @@ HRESULT Player::Init()
 
    // Broadcast a message to notify front-ends that it is 
    // time to reveal the playfield. 
+#ifndef __APPLE__
    UINT nMsgID = RegisterWindowMessage(_T("VPTableStart"));
    ::PostMessage(HWND_BROADCAST, nMsgID, NULL, NULL);
+#endif
 
    return S_OK;
 }
@@ -3768,7 +3818,7 @@ void Player::RenderStereo(int stereo3D, bool shaderAA) {
    	  if(error != vr::VRCompositorError_None)
    	  {
          char msg[128];
-         sprintf_s(msg, "VRCompositor Submit Left Error %u", error);
+         sprintf_s(msg, sizeof(msg), "VRCompositor Submit Left Error %u", error);
          ShowError(msg);
    	  }
       vr::Texture_t rightEyeTexture = { (void *)rightTexture->texture, vr::TextureType_OpenGL, vr::ColorSpace_Gamma };
@@ -3776,7 +3826,7 @@ void Player::RenderStereo(int stereo3D, bool shaderAA) {
    	  if(error != vr::VRCompositorError_None)
    	  {
          char msg[128];
-         sprintf_s(msg, "VRCompositor Submit Right Error %u", error);
+         sprintf_s(msg, sizeof(msg), "VRCompositor Submit Right Error %u", error);
          ShowError(msg);
    	  }
       //vr::VRCompositor()->PostPresentHandoff(); // PostPresentHandoff gives mixed results, improved GPU frametime for some, worse CPU frametime for others, troublesome enough to not warrants it's usage for now
@@ -3799,7 +3849,11 @@ void Player::UpdateHUD_IMGUI()
 #else
    ImGui_ImplDX9_NewFrame();
 #endif
+#ifndef __APPLE__
    ImGui_ImplWin32_NewFrame();
+#else
+   ImGui_ImplSDL2_NewFrame();
+#endif
    ImGui::NewFrame();
    ImGui::SetNextWindowSize(ShowFPSonly() ? ImVec2(200, 50) : ImVec2(600, 350), ImGuiCond_FirstUseEver);
    ImGui::SetNextWindowPos(ImVec2(10, 10));
@@ -3910,17 +3964,17 @@ void Player::UpdateHUD_IMGUI()
       {
          for (GTS gts = GTS(GTS_BeginFrame + 1); gts < GTS_EndFrame; gts = GTS(gts + 1))
          {
-            sprintf_s(szFoo, "   %s: %.2f ms (%4.1f%%)", GTS_name[gts], float(1000.0 * m_pin3d.m_gpu_profiler.DtAvg(gts)), float(100. * m_pin3d.m_gpu_profiler.DtAvg(gts) / dTDrawTotal));
+            sprintf_s(szFoo, sizeof(szFoo), "   %s: %.2f ms (%4.1f%%)", GTS_name[gts], float(1000.0 * m_pin3d.m_gpu_profiler.DtAvg(gts)), float(100. * m_pin3d.m_gpu_profiler.DtAvg(gts) / dTDrawTotal));
             DebugPrint(0, 320 + gts * 20, szFoo);
          }
-         sprintf_s(szFoo, " Frame time: %.2f ms", float(1000.0 * (dTDrawTotal + m_pin3d.m_gpu_profiler.DtAvg(GTS_EndFrame))));
+         sprintf_s(szFoo, sizeof(szFoo), " Frame time: %.2f ms", float(1000.0 * (dTDrawTotal + m_pin3d.m_gpu_profiler.DtAvg(GTS_EndFrame))));
          DebugPrint(0, 320 + GTS_EndFrame * 20, szFoo);
       }
       else
       {
          for (GTS gts = GTS(GTS_BeginFrame + 1); gts < GTS_EndFrame; gts = GTS(gts + 1))
          {
-            sprintf_s(szFoo, " %s: %.2f ms (%4.1f%%)", GTS_name_item[gts], float(1000.0 * m_pin3d.m_gpu_profiler.DtAvg(gts)), float(100. * m_pin3d.m_gpu_profiler.DtAvg(gts) / dTDrawTotal));
+            sprintf_s(szFoo, sizeof(szFoo), " %s: %.2f ms (%4.1f%%)", GTS_name_item[gts], float(1000.0 * m_pin3d.m_gpu_profiler.DtAvg(gts)), float(100. * m_pin3d.m_gpu_profiler.DtAvg(gts) / dTDrawTotal));
             DebugPrint(0, 300 + gts * 20, szFoo);
          }
       }
@@ -4036,18 +4090,18 @@ void Player::UpdateHUD()
 		const float fpsAvg = (m_fpsCount == 0) ? 0.0f : m_fpsAvg / m_fpsCount;
 		if (ShowFPSonly())
 		{
-			sprintf_s(szFoo, "FPS: %.1f (%.1f avg)", m_fps + 0.01f, fpsAvg + 0.01f);
+			sprintf_s(szFoo, sizeof(szFoo), "FPS: %.1f (%.1f avg)", m_fps + 0.01f, fpsAvg + 0.01f);
 			DebugPrint(0, 10, szFoo);
 		}
 		else
 		{
 		// Draw the amount of video memory used.
 		//!! Disabled until we can compute this correctly.
-		//sprintf_s(szFoo, " Used Graphics Memory: %.2f MB ", (float)NumVideoBytes / (float)(1024 * 1024));
+		//sprintf_s(szFoo, sizeof(szFoo), " Used Graphics Memory: %.2f MB ", (float)NumVideoBytes / (float)(1024 * 1024));
 		//DebugPrint(0, 230, szFoo); //!!?
 
 		// Draw the framerate.
-		sprintf_s(szFoo, "FPS: %.1f (%.1f avg)  Display %s Objects (%uk/%uk Triangles)  DayNight %u%%", m_fps+0.01f, fpsAvg+0.01f, RenderStaticOnly() ? "only static" : "all", (RenderDevice::m_stats_drawn_triangles + 999) / 1000, (stats_drawn_static_triangles + m_pin3d.m_pd3dPrimaryDevice->m_stats_drawn_triangles + 999) / 1000, quantizeUnsignedPercent(m_globalEmissionScale));
+		sprintf_s(szFoo, sizeof(szFoo), "FPS: %.1f (%.1f avg)  Display %s Objects (%uk/%uk Triangles)  DayNight %u%%", m_fps+0.01f, fpsAvg+0.01f, RenderStaticOnly() ? "only static" : "all", (RenderDevice::m_stats_drawn_triangles + 999) / 1000, (stats_drawn_static_triangles + m_pin3d.m_pd3dPrimaryDevice->m_stats_drawn_triangles + 999) / 1000, quantizeUnsignedPercent(m_globalEmissionScale));
 		DebugPrint(0, 10, szFoo);
 
 		const U32 period = m_lastFrameDuration;
@@ -4089,33 +4143,33 @@ void Player::UpdateHUD()
 			m_count++;
 		}
 
-		sprintf_s(szFoo, "Overall: %.1f ms (%.1f (%.1f) avg %.1f max)",
+		sprintf_s(szFoo, sizeof(szFoo), "Overall: %.1f ms (%.1f (%.1f) avg %.1f max)",
 			float(1e-3*period), float(1e-3 * (double)m_total / (double)m_count), float(1e-3*m_max), float(1e-3*m_max_total));
 		DebugPrint(0, 30, szFoo);
-		sprintf_s(szFoo, "%4.1f%% Physics: %.1f ms (%.1f (%.1f %4.1f%%) avg %.1f max)",
+		sprintf_s(szFoo, sizeof(szFoo), "%4.1f%% Physics: %.1f ms (%.1f (%.1f %4.1f%%) avg %.1f max)",
 			float((m_phys_period-m_script_period)*100.0 / period), float(1e-3*(m_phys_period-m_script_period)),
 			float(1e-3 * (double)m_phys_total / (double)m_count), float(1e-3*m_phys_max), float((double)m_phys_total*100.0 / (double)m_total), float(1e-3*m_phys_max_total));
 		DebugPrint(0, 50, szFoo);
-		sprintf_s(szFoo, "%4.1f%% Scripts: %.1f ms (%.1f (%.1f %4.1f%%) avg %.1f max)",
+		sprintf_s(szFoo, sizeof(szFoo), "%4.1f%% Scripts: %.1f ms (%.1f (%.1f %4.1f%%) avg %.1f max)",
 			float(m_script_period*100.0 / period), float(1e-3*m_script_period),
 			float(1e-3 * (double)m_script_total / (double)m_count), float(1e-3*m_script_max), float((double)m_script_total*100.0 / (double)m_total), float(1e-3*m_script_max_total));
 		DebugPrint(0, 70, szFoo);
 
 #ifndef ENABLE_SDL
 		// performance counters
-		sprintf_s(szFoo, "Draw calls: %u (%u Locks)", m_pin3d.m_pd3dPrimaryDevice->Perf_GetNumDrawCalls(), m_pin3d.m_pd3dPrimaryDevice->Perf_GetNumLockCalls());
+		sprintf_s(szFoo, sizeof(szFoo), "Draw calls: %u (%u Locks)", m_pin3d.m_pd3dPrimaryDevice->Perf_GetNumDrawCalls(), m_pin3d.m_pd3dPrimaryDevice->Perf_GetNumLockCalls());
 		DebugPrint(0, 95, szFoo);
-		sprintf_s(szFoo, "State changes: %u", m_pin3d.m_pd3dPrimaryDevice->Perf_GetNumStateChanges());
+		sprintf_s(szFoo, sizeof(szFoo), "State changes: %u", m_pin3d.m_pd3dPrimaryDevice->Perf_GetNumStateChanges());
 		DebugPrint(0, 115, szFoo);
-		sprintf_s(szFoo, "Texture changes: %u (%u Uploads)", m_pin3d.m_pd3dPrimaryDevice->Perf_GetNumTextureChanges(), m_pin3d.m_pd3dPrimaryDevice->Perf_GetNumTextureUploads());
+		sprintf_s(szFoo, sizeof(szFoo), "Texture changes: %u (%u Uploads)", m_pin3d.m_pd3dPrimaryDevice->Perf_GetNumTextureChanges(), m_pin3d.m_pd3dPrimaryDevice->Perf_GetNumTextureUploads());
 		DebugPrint(0, 135, szFoo);
-		sprintf_s(szFoo, "Shader/Parameter changes: %u / %u (%u Material ID changes)", m_pin3d.m_pd3dPrimaryDevice->Perf_GetNumTechniqueChanges(), m_pin3d.m_pd3dPrimaryDevice->Perf_GetNumParameterChanges(), material_flips);
+		sprintf_s(szFoo, sizeof(szFoo), "Shader/Parameter changes: %u / %u (%u Material ID changes)", m_pin3d.m_pd3dPrimaryDevice->Perf_GetNumTechniqueChanges(), m_pin3d.m_pd3dPrimaryDevice->Perf_GetNumParameterChanges(), material_flips);
 		DebugPrint(0, 155, szFoo);
-		sprintf_s(szFoo, "Objects: %u Transparent, %u Solid", (unsigned int)m_vHitTrans.size(), (unsigned int)m_vHitNonTrans.size());
+		sprintf_s(szFoo, sizeof(szFoo), "Objects: %u Transparent, %u Solid", (unsigned int)m_vHitTrans.size(), (unsigned int)m_vHitNonTrans.size());
 		DebugPrint(0, 175, szFoo);
 #endif
 
-		sprintf_s(szFoo, "Physics: %u iterations per frame (%u avg %u max)    Ball Velocity / Ang.Vel.: %.1f %.1f",
+		sprintf_s(szFoo, sizeof(szFoo), "Physics: %u iterations per frame (%u avg %u max)    Ball Velocity / Ang.Vel.: %.1f %.1f",
 			m_phys_iterations,
 			(U32)(m_phys_total_iterations / m_count),
 			m_phys_max_iterations,
@@ -4124,20 +4178,20 @@ void Player::UpdateHUD()
 
 #ifdef DEBUGPHYSICS
 #ifdef C_DYNAMIC
-		sprintf_s(szFoo, "Hits:%5u Collide:%5u Ctacs:%5u Static:%5u Embed:%5u TimeSearch:%5u",
+		sprintf_s(szFoo, sizeof(szFoo), "Hits:%5u Collide:%5u Ctacs:%5u Static:%5u Embed:%5u TimeSearch:%5u",
 			c_hitcnts, c_collisioncnt, c_contactcnt, c_staticcnt, c_embedcnts, c_timesearch);
 #else
-		sprintf_s(szFoo, "Hits:%5u Collide:%5u Ctacs:%5u Embed:%5u TimeSearch:%5u",
+		sprintf_s(szFoo, sizeof(szFoo), "Hits:%5u Collide:%5u Ctacs:%5u Embed:%5u TimeSearch:%5u",
 			c_hitcnts, c_collisioncnt, c_contactcnt, c_embedcnts, c_timesearch);
 #endif
 		DebugPrint(0, 220, szFoo);
 
-		sprintf_s(szFoo, "kDObjects: %5u kD:%5u QuadObjects: %5u Quadtree:%5u Traversed:%5u Tested:%5u DeepTested:%5u",
+		sprintf_s(szFoo, sizeof(szFoo), "kDObjects: %5u kD:%5u QuadObjects: %5u Quadtree:%5u Traversed:%5u Tested:%5u DeepTested:%5u",
 			c_kDObjects, c_kDNextlevels, c_quadObjects, c_quadNextlevels, c_traversed, c_tested, c_deepTested);
 		DebugPrint(0, 240, szFoo);
 #endif
 
-		sprintf_s(szFoo, "Left Flipper keypress to rotate: %.1f ms (%d f) to eos: %.1f ms (%d f)",
+		sprintf_s(szFoo, sizeof(szFoo), "Left Flipper keypress to rotate: %.1f ms (%d f) to eos: %.1f ms (%d f)",
 			(INT64)(m_pininput.m_leftkey_down_usec_rotate_to_end - m_pininput.m_leftkey_down_usec) < 0 ? int_as_float(0x7FC00000) : (double)(m_pininput.m_leftkey_down_usec_rotate_to_end - m_pininput.m_leftkey_down_usec) / 1000.,
 			(int)(m_pininput.m_leftkey_down_frame_rotate_to_end - m_pininput.m_leftkey_down_frame) < 0 ? -1 : (int)(m_pininput.m_leftkey_down_frame_rotate_to_end - m_pininput.m_leftkey_down_frame),
 			(INT64)(m_pininput.m_leftkey_down_usec_EOS - m_pininput.m_leftkey_down_usec) < 0 ? int_as_float(0x7FC00000) : (double)(m_pininput.m_leftkey_down_usec_EOS - m_pininput.m_leftkey_down_usec) / 1000.,
@@ -4161,21 +4215,21 @@ void Player::UpdateHUD()
 		char szFoo[256];
 		if (ProfilingMode() == 1)
 		{
-			sprintf_s(szFoo, " Draw time: %.2f ms", float(1000.0 * dTDrawTotal));
+			sprintf_s(szFoo, sizeof(szFoo), " Draw time: %.2f ms", float(1000.0 * dTDrawTotal));
 			DebugPrint(0, 320, szFoo);
 			for (GTS gts = GTS(GTS_BeginFrame + 1); gts < GTS_EndFrame; gts = GTS(gts + 1))
 			{
-				sprintf_s(szFoo, "   %s: %.2f ms (%4.1f%%)", GTS_name[gts], float(1000.0 * m_pin3d.m_gpu_profiler.DtAvg(gts)), float(100. * m_pin3d.m_gpu_profiler.DtAvg(gts)/dTDrawTotal));
+				sprintf_s(szFoo, sizeof(szFoo), "   %s: %.2f ms (%4.1f%%)", GTS_name[gts], float(1000.0 * m_pin3d.m_gpu_profiler.DtAvg(gts)), float(100. * m_pin3d.m_gpu_profiler.DtAvg(gts)/dTDrawTotal));
 				DebugPrint(0, 320 + gts * 20, szFoo);
 			}
-			sprintf_s(szFoo, " Frame time: %.2f ms", float(1000.0 * (dTDrawTotal + m_pin3d.m_gpu_profiler.DtAvg(GTS_EndFrame))));
+			sprintf_s(szFoo, sizeof(szFoo), " Frame time: %.2f ms", float(1000.0 * (dTDrawTotal + m_pin3d.m_gpu_profiler.DtAvg(GTS_EndFrame))));
 			DebugPrint(0, 320 + GTS_EndFrame * 20, szFoo);
 		}
 		else
 		{
 			for (GTS gts = GTS(GTS_BeginFrame + 1); gts < GTS_EndFrame; gts = GTS(gts + 1))
 			{
-				sprintf_s(szFoo, " %s: %.2f ms (%4.1f%%)", GTS_name_item[gts], float(1000.0 * m_pin3d.m_gpu_profiler.DtAvg(gts)), float(100. * m_pin3d.m_gpu_profiler.DtAvg(gts)/dTDrawTotal));
+				sprintf_s(szFoo, sizeof(szFoo), " %s: %.2f ms (%4.1f%%)", GTS_name_item[gts], float(1000.0 * m_pin3d.m_gpu_profiler.DtAvg(gts)), float(100. * m_pin3d.m_gpu_profiler.DtAvg(gts)/dTDrawTotal));
 				DebugPrint(0, 300 + gts * 20, szFoo);
 			}
 		}
@@ -4233,7 +4287,7 @@ void Player::UpdateHUD()
 		}
 
 		char buffer[256];
-		sprintf_s(buffer, " (%s Revision %u)", !m_ptable->m_szDateSaved.empty() ? m_ptable->m_szDateSaved.c_str() : "N.A.", m_ptable->m_numTimesSaved);
+		sprintf_s(buffer, sizeof(buffer), " (%s Revision %u)", !m_ptable->m_szDateSaved.empty() ? m_ptable->m_szDateSaved.c_str() : "N.A.", m_ptable->m_numTimesSaved);
 		strncat_s(szFoo, buffer, sizeof(szFoo)-strnlen_s(szFoo, sizeof(szFoo))-1);
 
 		if (strnlen_s(szFoo,sizeof(szFoo)) > 0)
@@ -4246,7 +4300,7 @@ void Player::UpdateHUD()
 
 		for (unsigned int i2 = 0; i2 < 2; ++i2)
 		{
-			const std::string& s = (i2 == 0) ? m_ptable->m_szBlurb : m_ptable->m_szDescription;
+			const string& s = (i2 == 0) ? m_ptable->m_szBlurb : m_ptable->m_szDescription;
 			int length = (int)s.length();
 			const char *desc = s.c_str();
 			while (length > 0)
@@ -4314,8 +4368,15 @@ void Player::PostProcess(const bool ambientOcclusion)
    // Resolve the MSAA buffer to a Non-MSAA buffer if we are using MSAA
    if (g_pplayer->m_MSAASamples > 1)
    {
+#ifndef __APPLE__
       glBlitNamedFramebuffer(m_pin3d.m_pd3dPrimaryDevice->GetBackBufferTexture()->framebuffer, m_pin3d.m_pd3dPrimaryDevice->GetNonMSAABlitTexture(g_pplayer->m_MSAASamples)->framebuffer,
          0, 0, m_pin3d.m_pd3dPrimaryDevice->GetBackBufferTexture()->width - 1, m_pin3d.m_pd3dPrimaryDevice->GetBackBufferTexture()->height - 1, 0, 0, m_pin3d.m_pd3dPrimaryDevice->GetNonMSAABlitTexture(g_pplayer->m_MSAASamples)->width - 1, m_pin3d.m_pd3dPrimaryDevice->GetNonMSAABlitTexture(g_pplayer->m_MSAASamples)->height - 1, GL_COLOR_BUFFER_BIT, GL_NEAREST);
+#else
+      glBindFramebuffer(GL_READ_FRAMEBUFFER, m_pin3d.m_pd3dPrimaryDevice->GetBackBufferTexture()->framebuffer);
+      glBindFramebuffer(GL_DRAW_FRAMEBUFFER, m_pin3d.m_pd3dPrimaryDevice->GetNonMSAABlitTexture(g_pplayer->m_MSAASamples)->framebuffer);
+         
+      glBlitFramebuffer(0, 0, m_pin3d.m_pd3dPrimaryDevice->GetBackBufferTexture()->width - 1, m_pin3d.m_pd3dPrimaryDevice->GetBackBufferTexture()->height - 1, 0, 0, m_pin3d.m_pd3dPrimaryDevice->GetNonMSAABlitTexture(g_pplayer->m_MSAASamples)->width - 1, m_pin3d.m_pd3dPrimaryDevice->GetNonMSAABlitTexture(g_pplayer->m_MSAASamples)->height - 1, GL_COLOR_BUFFER_BIT, GL_NEAREST);
+#endif
    }
 #endif
 
@@ -4590,83 +4651,83 @@ void Player::UpdateCameraModeDisplay()
    {
    case 0:
    {
-      sprintf_s(szFoo, "Inclination: %.3f", m_ptable->m_BG_inclination[m_ptable->m_BG_current_set]);
+      sprintf_s(szFoo, sizeof(szFoo), "Inclination: %.3f", m_ptable->m_BG_inclination[m_ptable->m_BG_current_set]);
       break;
    }
    case 1:
    {
-      sprintf_s(szFoo, "Field Of View: %.3f", m_ptable->m_BG_FOV[m_ptable->m_BG_current_set]);
+      sprintf_s(szFoo, sizeof(szFoo), "Field Of View: %.3f", m_ptable->m_BG_FOV[m_ptable->m_BG_current_set]);
       break;
    }
    case 2:
    {
-      sprintf_s(szFoo, "Layback: %.3f", m_ptable->m_BG_layback[m_ptable->m_BG_current_set]);
+      sprintf_s(szFoo, sizeof(szFoo), "Layback: %.3f", m_ptable->m_BG_layback[m_ptable->m_BG_current_set]);
       break;
    }
    case 3:
    {
-      sprintf_s(szFoo, "X/Y Scale: %.3f / %.3f", m_ptable->m_BG_scalex[m_ptable->m_BG_current_set], m_ptable->m_BG_scaley[m_ptable->m_BG_current_set]);
+      sprintf_s(szFoo, sizeof(szFoo), "X/Y Scale: %.3f / %.3f", m_ptable->m_BG_scalex[m_ptable->m_BG_current_set], m_ptable->m_BG_scaley[m_ptable->m_BG_current_set]);
       break;
    }
    case 4:
    {
-      sprintf_s(szFoo, "X Scale: %.3f", m_ptable->m_BG_scalex[m_ptable->m_BG_current_set]);
+      sprintf_s(szFoo, sizeof(szFoo), "X Scale: %.3f", m_ptable->m_BG_scalex[m_ptable->m_BG_current_set]);
       break;
    }
    case 5:
    {
-      sprintf_s(szFoo, "Y Scale: %.3f", m_ptable->m_BG_scaley[m_ptable->m_BG_current_set]);
+      sprintf_s(szFoo, sizeof(szFoo), "Y Scale: %.3f", m_ptable->m_BG_scaley[m_ptable->m_BG_current_set]);
       break;
    }
    case 6:
    {
-      sprintf_s(szFoo, "Z Scale: %.3f", m_ptable->m_BG_scalez[m_ptable->m_BG_current_set]);
+      sprintf_s(szFoo, sizeof(szFoo), "Z Scale: %.3f", m_ptable->m_BG_scalez[m_ptable->m_BG_current_set]);
       break;
    }
    case 7:
    {
-      sprintf_s(szFoo, "X Offset: %.3f", m_ptable->m_BG_xlatex[m_ptable->m_BG_current_set]);
+      sprintf_s(szFoo, sizeof(szFoo), "X Offset: %.3f", m_ptable->m_BG_xlatex[m_ptable->m_BG_current_set]);
       break;
    }
    case 8:
    {
-      sprintf_s(szFoo, "Y Offset: %.3f", m_ptable->m_BG_xlatey[m_ptable->m_BG_current_set]);
+      sprintf_s(szFoo, sizeof(szFoo), "Y Offset: %.3f", m_ptable->m_BG_xlatey[m_ptable->m_BG_current_set]);
       break;
    }
    case 9:
    {
-      sprintf_s(szFoo, "Z Offset: %.3f", m_ptable->m_BG_xlatez[m_ptable->m_BG_current_set]);
+      sprintf_s(szFoo, sizeof(szFoo), "Z Offset: %.3f", m_ptable->m_BG_xlatez[m_ptable->m_BG_current_set]);
       break;
    }
    case 10:
    {
-      sprintf_s(szFoo, "Light Emission Scale: %.3f", m_ptable->m_lightEmissionScale);
+      sprintf_s(szFoo, sizeof(szFoo), "Light Emission Scale: %.3f", m_ptable->m_lightEmissionScale);
       break;
    }
    case 11:
    {
-      sprintf_s(szFoo, "Light Range: %.3f", m_ptable->m_lightRange);
+      sprintf_s(szFoo, sizeof(szFoo), "Light Range: %.3f", m_ptable->m_lightRange);
       break;
    }
    case 12:
    {
-      sprintf_s(szFoo, "Light Height: %.3f", m_ptable->m_lightHeight);
+      sprintf_s(szFoo, sizeof(szFoo), "Light Height: %.3f", m_ptable->m_lightHeight);
       break;
    }
    case 13:
    {
-      sprintf_s(szFoo, "Environment Emission: %.3f", m_ptable->m_envEmissionScale);
+      sprintf_s(szFoo, sizeof(szFoo), "Environment Emission: %.3f", m_ptable->m_envEmissionScale);
       break;
    }
    default:
    {
-      sprintf_s(szFoo, "N/A");
+      sprintf_s(szFoo, sizeof(szFoo), "N/A");
       break;
    }
    }
    DebugPrint(0, 150, szFoo);
    m_pin3d.InitLayout(m_ptable->m_BG_enable_FSS);
-   sprintf_s(szFoo, "Camera at X: %.2f Y: %.2f Z: %.2f,  Rotation: %.2f", -m_pin3d.m_proj.m_matView._41, (m_ptable->m_BG_current_set == 0 || m_ptable->m_BG_current_set == 2) ? m_pin3d.m_proj.m_matView._42 : -m_pin3d.m_proj.m_matView._42, m_pin3d.m_proj.m_matView._43, g_pplayer->m_ptable->m_BG_rotation[g_pplayer->m_ptable->m_BG_current_set]); // DT & FSS
+   sprintf_s(szFoo, sizeof(szFoo), "Camera at X: %.2f Y: %.2f Z: %.2f,  Rotation: %.2f", -m_pin3d.m_proj.m_matView._41, (m_ptable->m_BG_current_set == 0 || m_ptable->m_BG_current_set == 2) ? m_pin3d.m_proj.m_matView._42 : -m_pin3d.m_proj.m_matView._42, m_pin3d.m_proj.m_matView._43, g_pplayer->m_ptable->m_BG_rotation[g_pplayer->m_ptable->m_BG_current_set]); // DT & FSS
    DebugPrint(0, 130, szFoo);
    DebugPrint(0, 190, "Navigate around with the Arrow Keys and Left Alt Key (if enabled in the Key settings)");
    if(g_pvp->m_povEdit)
@@ -4678,6 +4739,7 @@ void Player::UpdateCameraModeDisplay()
 
 void Player::LockForegroundWindow(const bool enable)
 {
+#ifndef __APPLE__
 #if(_WIN32_WINNT >= 0x0500)
     if (m_fullScreen) // revert special tweaks of exclusive fullscreen app
     {
@@ -4686,6 +4748,7 @@ void Player::LockForegroundWindow(const bool enable)
     }
 #else
 #pragma message ( "Warning: Missing LockSetForegroundWindow()" )
+#endif
 #endif
 
 }
@@ -4700,16 +4763,20 @@ void Player::Render()
 
    if (m_overall_frames < 10)
    {
+#ifndef __APPLE__
       const HWND hVPMWnd = FindWindow("MAME", nullptr);
       if (hVPMWnd != nullptr)
       {
          if (::IsWindowVisible(hVPMWnd))
             ::SetWindowPos(hVPMWnd, HWND_TOPMOST, 0, 0, 0, 0, (SWP_NOMOVE | SWP_NOSIZE | SWP_SHOWWINDOW | SWP_NOACTIVATE)); // in some strange cases the vpinmame window is not on top, so enforce it
       }
+#endif
    }
 
+#ifndef __APPLE__
    if (m_sleeptime > 0)
       Sleep(m_sleeptime - 1);
+#endif
 
    m_pininput.ProcessKeys(/*sim_msec,*/ -(int)(timeforframe / 1000)); // trigger key events mainly for VPM<->VP rountrip
 
@@ -4875,8 +4942,10 @@ void Player::Render()
       m_pauseTimeTarget = 0;
       m_userDebugPaused = true;
       RecomputePseudoPauseState();
+#ifndef __APPLE__
       if(m_debuggerDialog.IsWindow())
         m_debuggerDialog.SendMessage(RECOMPUTEBUTTONCHECK, 0, 0);
+#endif
    }
 #endif
 
@@ -4891,9 +4960,11 @@ void Player::Render()
 
    if (m_ptable->m_pcv->m_scriptError)
    {
+#ifndef __APPLE__
       // Crash back to the editor
       //SendMessage(WM_CLOSE, 0, 0);
       m_ptable->SendMessage(WM_COMMAND, ID_TABLE_STOP_PLAY, 0);
+#endif
    }
    else
    {
@@ -4908,7 +4979,9 @@ void Player::Render()
             const int borderwidth = (GetSystemMetrics(SM_CYFIXEDFRAME) * 2) + 2;
 
             RECT rect;
+#ifndef __APPLE__
             ::GetWindowRect(GetHwnd(), &rect);
+#endif
             int x = rect.left;
             int y = rect.top;
             // Make room for title
@@ -4922,6 +4995,7 @@ void Player::Render()
             const int windowflagsex = m_showWindowedCaption ? 0 : WS_EX_OVERLAPPEDWINDOW;
 #endif
 
+#ifndef __APPLE__
             //!! does not respect borders so far!!! -> remove them or change width/height accordingly ?? otherwise ignore as eventually it will be restored anyway??
             //!! like this the render window is scaled and thus implicitly blurred though!
             SetWindowLongPtr(GWL_STYLE, windowflags);
@@ -4930,6 +5004,7 @@ void Player::Render()
 #endif
             SetWindowPos(nullptr, x, m_showWindowedCaption ? (y + captionheight) : (y - captionheight), m_width, m_height + (m_showWindowedCaption ? 0 : captionheight), SWP_NOOWNERZORDER | SWP_NOZORDER | SWP_NOACTIVATE | SWP_FRAMECHANGED);
             ShowWindow(SW_SHOW);
+#endif
 
             // Save position of non-fullscreen player window to registry, and only if it was potentially moved around (i.e. when caption was already visible)
             if (m_showWindowedCaption)
@@ -4953,15 +5028,19 @@ void Player::Render()
          }
          else if ((m_closeType == 0) && !g_pvp->m_disable_pause_menu)
          {
+#ifndef __APPLE__
             ShowCursor(TRUE);
             option = DialogBox(g_pvp->theInstance, MAKEINTRESOURCE(IDD_GAMEPAUSE), GetHwnd(), PauseProc);
             if(option != ID_DEBUGWINDOW)
                ShowCursor(FALSE);
+#endif
          }
          else //m_closeType == all others
          {
             option = ID_QUIT;
+#ifndef __APPLE__
             SendMessage(g_pvp->GetHwnd(), WM_COMMAND, ID_FILE_EXIT, NULL);
+#endif
          }
 
          m_closeDown = false;
@@ -4974,13 +5053,16 @@ void Player::Render()
 #ifdef ENABLE_SDL
             StopPlayer();
 #endif
+#ifndef __APPLE__
             m_ptable->SendMessage(WM_COMMAND, ID_TABLE_STOP_PLAY, 0);
+#endif
          }
       }
       else if (m_showDebugger && !g_pvp->m_disable_pause_menu)
       {
           m_debugMode = true;
           m_showDebugger = false;
+#ifndef __APPLE__
           if (!m_debuggerDialog.IsWindow())
           {
              m_debuggerDialog.Create(GetHwnd());
@@ -4990,6 +5072,7 @@ void Player::Render()
              m_debuggerDialog.SetForegroundWindow();
 
           EndDialog( g_pvp->GetHwnd(), ID_DEBUGWINDOW );
+#endif
       }
    }
    ///// Don't put anything here - the ID_QUIT check must be the last thing done
@@ -5030,7 +5113,7 @@ inline float map_bulblight_to_emission(const Light* const l) // magic mapping of
    return l->m_d.m_currentIntensity * clamp(powf(l->m_d.m_falloff*0.6f, l->m_d.m_falloff_power*0.6f), 0.f, 23000.f); //!! 0.6f,0.6f = magic, also clamp 23000
 }
 
-void search_for_nearest(const Ball * const pball, const std::vector<Light*> &lights, Light* light_nearest[MAX_BALL_LIGHT_SOURCES])
+void search_for_nearest(const Ball * const pball, const vector<Light*> &lights, Light* light_nearest[MAX_BALL_LIGHT_SOURCES])
 {
    for (unsigned int l = 0; l < MAX_BALL_LIGHT_SOURCES; ++l)
    {
@@ -5109,7 +5192,7 @@ void Player::DrawBalls()
       m_pin3d.m_pd3dPrimaryDevice->SetRenderState(RenderDevice::ZENABLE, RenderDevice::RS_FALSE);
 
    // collect all lights that can reflect on balls (currently only bulbs and if flag set to do so)
-   std::vector<Light*> lights;
+   vector<Light*> lights;
    for (size_t i = 0; i < m_ptable->m_vedit.size(); i++)
    {
       IEditable * const item = m_ptable->m_vedit[i];
@@ -5413,21 +5496,24 @@ void Player::DrawBalls()
 struct DebugMenuItem
 {
    int objectindex;
-   std::vector<int> *pvdispid;
+   vector<int> *pvdispid;
    HMENU hmenu;
 };
 
 void AddEventToDebugMenu(const char *sz, int index, int dispid, LPARAM lparam)
 {
+#ifndef __APPLE__
    const DebugMenuItem * const pdmi = (DebugMenuItem *)lparam;
    const HMENU hmenu = pdmi->hmenu;
    const int menuid = ((pdmi->objectindex + 1) << 16) | (int)pdmi->pvdispid->size();
    pdmi->pvdispid->push_back(dispid);
    AppendMenu(hmenu, MF_STRING, menuid, sz);
+#endif
 }
 
 void Player::DoDebugObjectMenu(const int x, const int y)
 {
+#ifndef __APPLE__
    if (m_vdebugho.empty())
    {
       // First time the debug hit-testing has been used
@@ -5486,8 +5572,8 @@ void Player::DoDebugObjectMenu(const int x, const int y)
    const HMENU hmenu = CreatePopupMenu();
 
    vector<IFireEvents*> vpfe;
-   std::vector<HMENU> vsubmenu;
-   std::vector< std::vector<int>* > vvdispid;
+   vector<HMENU> vsubmenu;
+   vector< vector<int>* > vvdispid;
    for (size_t i = 0; i < vhoHit.size(); i++)
    {
       HitObject * const pho = vhoHit[i];
@@ -5516,7 +5602,7 @@ void Player::DoDebugObjectMenu(const int x, const int y)
             wzT = V_BSTR(&var);
             AppendMenuW(hmenu, MF_STRING | MF_POPUP, (UINT_PTR)submenu, wzT);
 
-            std::vector<int> *pvdispid = new std::vector<int>();
+            vector<int> *pvdispid = new vector<int>();
             vvdispid.push_back(pvdispid);
 
             DebugMenuItem dmi;
@@ -5529,8 +5615,8 @@ void Player::DoDebugObjectMenu(const int x, const int y)
          IDebugCommands * const pdc = pho->m_pfedebug->GetDebugCommands();
          if (pdc)
          {
-            std::vector<int> vids;
-            std::vector<int> vcommandid;
+            vector<int> vids;
+            vector<int> vcommandid;
 
             pdc->GetDebugCommands(vids, vcommandid);
             for (size_t l = 0; l < vids.size(); l++)
@@ -5579,10 +5665,12 @@ void Player::DoDebugObjectMenu(const int x, const int y)
       delete vvdispid[i];
 
    UnpauseMusic();
+#endif
 }
 
 LRESULT Player::WndProc(UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
+#ifndef __APPLE__
 #ifdef USE_IMGUI
     if (ImGui_ImplWin32_WndProcHandler(GetHwnd(), uMsg, wParam, lParam))
       return true;
@@ -5744,6 +5832,9 @@ LRESULT Player::WndProc(UINT uMsg, WPARAM wParam, LPARAM lParam)
     }
 
     return WndProcDefault(uMsg, wParam, lParam);
+#else
+    return 0L;
+#endif
 }
 
 void Player::StopPlayer()
@@ -5753,6 +5844,7 @@ void Player::StopPlayer()
 
    // signal the script that the game is now exited to allow any cleanup
    m_ptable->FireVoidEvent(DISPID_GameEvents_Exit);
+#ifndef __APPLE__
    if (m_detectScriptHang)
       g_pvp->PostWorkToWorkerThread(HANG_SNOOP_STOP, NULL);
 
@@ -5766,10 +5858,12 @@ void Player::StopPlayer()
    LockForegroundWindow(false);
 
    g_pvp->SetForegroundWindow();
+#endif
 }
 
 INT_PTR CALLBACK PauseProc(HWND hwndDlg, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
+#ifndef __APPLE__
    switch (uMsg)
    {
       case WM_INITDIALOG:
@@ -5830,6 +5924,7 @@ INT_PTR CALLBACK PauseProc(HWND hwndDlg, UINT uMsg, WPARAM wParam, LPARAM lParam
          }//switch (HIWORD(wParam))
       }
    }
+#endif
    return FALSE;
 }
 

@@ -3,11 +3,13 @@
 #include "typedefs3D.h"
 #include "RenderDevice.h"
 
-#include <Windows.h>
+#ifndef __APPLE__
+#include <windows.h>
+#endif
 
 #include <iostream>
 #include <fstream>
-#include <string>
+#include <sstream>
 #include <inc/robin_hood.h>
 #include <regex>
 
@@ -16,8 +18,8 @@
 #endif
 
 static std::ofstream* logFile = nullptr;
-std::string Shader::shaderPath;
-std::string Shader::Defines;
+string Shader::shaderPath;
+string Shader::Defines;
 Matrix3D Shader::mWorld, Shader::mView, Shader::mProj[2];
 int Shader::lastShaderProgram = -1;
 D3DTexture* Shader::noTexture = nullptr;
@@ -66,7 +68,7 @@ shaderUniforms Shader::getUniformByName(const string& name) {
       if (name == shaderUniformNames[i])
          return shaderUniforms(i);
 
-   LOG(1, m_shaderCodeName, std::string("getUniformByName Could not find uniform ").append(name).append(" in shaderUniformNames."));
+   LOG(1, m_shaderCodeName, string("getUniformByName Could not find uniform ").append(name).append(" in shaderUniformNames."));
    return SHADER_UNIFORM_INVALID;
 }
 
@@ -75,7 +77,7 @@ shaderAttributes Shader::getAttributeByName(const string& name) {
       if (name == shaderAttributeNames[i])
          return shaderAttributes(i);
 
-   LOG(1, m_shaderCodeName, std::string("getAttributeByName Could not find attribute ").append(name).append(" in shaderAttributeNames."));
+   LOG(1, m_shaderCodeName, string("getAttributeByName Could not find attribute ").append(name).append(" in shaderAttributeNames."));
    return SHADER_ATTRIBUTE_INVALID;
 }
 
@@ -84,7 +86,7 @@ shaderTechniques Shader::getTechniqueByName(const string& name) {
       if (name == shaderTechniqueNames[i])
          return shaderTechniques(i);
 
-   LOG(1, m_shaderCodeName, std::string("getTechniqueByName: Could not find technique ").append(name).append(" in shaderTechniqueNames."));
+   LOG(1, m_shaderCodeName, string("getTechniqueByName: Could not find technique ").append(name).append(" in shaderTechniqueNames."));
    return SHADER_TECHNIQUE_INVALID;
 }
 
@@ -123,7 +125,7 @@ bla:
                 char msg[512];
                 TCHAR full_path[MAX_PATH];
                 GetFullPathName(_T(name.c_str()), MAX_PATH, full_path, nullptr);
-                sprintf_s(msg, 512, "Could not create logfile %s", full_path);
+                sprintf_s(msg, sizeof(msg), "Could not create logfile %s", full_path);
                 ShowError(msg);
             }
             else
@@ -169,6 +171,9 @@ bool Shader::parseFile(const string& fileNameRoot, const string& fileName, int l
       size_t linenumber = 0;
       while (getline(glfxFile, line))
       {
+#ifdef __APPLE__
+         line = std::regex_replace(line, std::regex("\\s+$"), string(""));
+#endif
          linenumber++;
          if (line.compare(0, 4, "////") == 0) {
             string newMode = line.substr(4, line.length() - 4);
@@ -232,7 +237,7 @@ bool Shader::compileGLShader(const string& fileNameRoot, const string& shaderCod
       glGetShaderInfoLog(vertexShader, maxLength, &maxLength, errorText);
       LOG(1, fileNameRoot, string(shaderCodeName).append(": Vertex Shader compilation failed with: ").append(errorText));
       char msg[2048];
-      sprintf_s(msg, "Fatal Error: Vertex Shader compilation of %s:%s failed!\n\n%s", fileNameRoot.c_str(), shaderCodeName.c_str(),errorText);
+      sprintf_s(msg, sizeof(msg), "Fatal Error: Vertex Shader compilation of %s:%s failed!\n\n%s", fileNameRoot.c_str(), shaderCodeName.c_str(),errorText);
       ReportError(msg, -1, __FILE__, __LINE__);
       free(errorText);
       success = false;
@@ -257,7 +262,7 @@ bool Shader::compileGLShader(const string& fileNameRoot, const string& shaderCod
          glGetShaderInfoLog(geometryShader, maxLength, &maxLength, errorText);
          LOG(1, fileNameRoot, string(shaderCodeName).append(": Geometry Shader compilation failed with: ").append(errorText));
          char msg[2048];
-         sprintf_s(msg, "Fatal Error: Geometry Shader compilation of %s:%s failed!\n\n%s", fileNameRoot.c_str(), shaderCodeName.c_str(), errorText);
+         sprintf_s(msg, sizeof(msg), "Fatal Error: Geometry Shader compilation of %s:%s failed!\n\n%s", fileNameRoot.c_str(), shaderCodeName.c_str(), errorText);
          ReportError(msg, -1, __FILE__, __LINE__);
          free(errorText);
          success = false;
@@ -283,7 +288,7 @@ bool Shader::compileGLShader(const string& fileNameRoot, const string& shaderCod
          glGetShaderInfoLog(fragmentShader, maxLength, &maxLength, errorText);
          LOG(1, fileNameRoot, shaderCodeName + ": Fragment Shader compilation failed with: " + errorText);
          char msg[2048];
-         sprintf_s(msg, "Fatal Error: Fragment Shader compilation of %s:%s failed!\n\n%s", fileNameRoot.c_str(), shaderCodeName.c_str(), errorText);
+         sprintf_s(msg, sizeof(msg), "Fatal Error: Fragment Shader compilation of %s:%s failed!\n\n%s", fileNameRoot.c_str(), shaderCodeName.c_str(), errorText);
          ReportError(msg, -1, __FILE__, __LINE__);
          free(errorText);
          success = false;
@@ -471,7 +476,7 @@ string Shader::analyzeFunction(const char* shaderCodeName, const string& _techni
    string functionCode = (it != values.end()) ? it->second : string();
    if (end > start + 1) {
       std::stringstream params(functionName.substr(start + 1, end - start - 1));
-      std::string param;
+      string param;
       int paramID = 0;
       while (std::getline(params, param, ',')) {
          functionCode = std::regex_replace(functionCode, std::regex(string("%PARAM").append(std::to_string(paramID)).append("%")), param);
@@ -480,6 +485,27 @@ string Shader::analyzeFunction(const char* shaderCodeName, const string& _techni
    }
    return functionCode;
 }
+
+#ifdef __APPLE__
+string Shader::preprocessGLShader(const string& shaderCode) {
+   std::istringstream iss(shaderCode);
+   string header;
+   string extensions;
+   string code;
+
+   for (std::string line; std::getline(iss, line); )
+   {
+      if (line.compare(0, 9, "#version ") == 0) 
+         header.append("#version 410\n#define __APPLE__").append("\n");
+      else if (line.compare(0, 11, "#extension ") == 0)
+         extensions.append(line).append("\n");
+      else
+         code.append(line).append("\n");
+   }
+
+   return header + extensions + code;
+}
+#endif
 
 bool Shader::Load(const char* shaderCodeName, UINT codeSize)
 {
@@ -497,7 +523,7 @@ bool Shader::Load(const char* shaderCodeName, UINT codeSize)
    if (!parsing) {
       LOG(1, (const char*)shaderCodeName, "Parsing failed");
       char msg[128];
-      sprintf_s(msg, "Fatal Error: Shader parsing of %s failed!", shaderCodeName);
+      sprintf_s(msg, sizeof(msg), "Fatal Error: Shader parsing of %s failed!", shaderCodeName);
       ReportError(msg, -1, __FILE__, __LINE__);
       if (logFile)
          logFile->close();
@@ -525,14 +551,14 @@ bool Shader::Load(const char* shaderCodeName, UINT codeSize)
    std::stringstream techniques((it != values.end()) ? it->second : string());
    if (techniques)
    {
-      std::string _technique;
+      string _technique;
       int tecCount = 0;
       while (std::getline(techniques, _technique, '\n')) {//Parse Technique e.g. basic_with_texture:P0:vs_main():gs_optional_main():ps_main_texture()
          if ((_technique.length() > 0) && (_technique.compare(0, 2, "//") != 0))//Skip empty lines and comments
          {
             std::stringstream elements(_technique);
             int elem = 0;
-            std::string element[5];
+            string element[5];
             //Split :
             while ((elem < 5) && std::getline(elements, element[elem], ':')) {
                elem++;
@@ -543,20 +569,29 @@ bool Shader::Load(const char* shaderCodeName, UINT codeSize)
             string vertexShaderCode = vertex;
             vertexShaderCode.append("\n//").append(_technique).append("\n//").append(element[2]).append("\n");
             vertexShaderCode.append(analyzeFunction(shaderCodeName, _technique, element[2], values)).append("\0");
+#ifdef __APPLE__
+            vertexShaderCode = preprocessGLShader(vertexShaderCode);
+#endif
             string geometryShaderCode;
             if (elem == 5 && element[3].length() > 0) {
                geometryShaderCode = geometry;
                geometryShaderCode.append("\n//").append(_technique).append("\n//").append(element[3]).append("\n");
                geometryShaderCode.append(analyzeFunction(shaderCodeName, _technique, element[3], values)).append("\0");
             }
+#ifdef __APPLE__
+            geometryShaderCode = preprocessGLShader(geometryShaderCode);
+#endif
             string fragmentShaderCode = fragment;
             fragmentShaderCode.append("\n//").append(_technique).append("\n//").append(element[elem-1]).append("\n");
             fragmentShaderCode.append(analyzeFunction(shaderCodeName, _technique, element[elem-1], values)).append("\0");
+#ifdef __APPLE__
+            fragmentShaderCode = preprocessGLShader(fragmentShaderCode);
+#endif
             const bool build = compileGLShader(shaderCodeName, element[0]/*.append("_").append(element[1])*/, vertexShaderCode, geometryShaderCode, fragmentShaderCode);
             if(!build)
             {
                char msg[128];
-               sprintf_s(msg, "Fatal Error: Shader compilation failed for %s!", shaderCodeName);
+               sprintf_s(msg, sizeof(msg), "Fatal Error: Shader compilation failed for %s!", shaderCodeName);
                ReportError(msg, -1, __FILE__, __LINE__);
                if (logFile)
                   logFile->close();
@@ -570,7 +605,7 @@ bool Shader::Load(const char* shaderCodeName, UINT codeSize)
    else {
       LOG(1, (const char*)shaderCodeName, "No techniques found.");
       char msg[128];
-      sprintf_s(msg, "Fatal Error: No shader techniques found in %s!", shaderCodeName);
+      sprintf_s(msg, sizeof(msg), "Fatal Error: No shader techniques found in %s!", shaderCodeName);
       ReportError(msg, -1, __FILE__, __LINE__);
       if (logFile)
          logFile->close();
@@ -688,13 +723,13 @@ void Shader::Begin(const unsigned int pass)
    char msg[256];
 #ifdef TWEAK_GL_SHADER
    if (technique >= SHADER_TECHNIQUE_COUNT) {
-      sprintf_s(msg, 256, "Could not find shader technique ID %i", technique);
+      sprintf_s(msg, sizeof(msg), "Could not find shader technique ID %i", technique);
       ShowError(msg);
       exit(-1);
    }
    m_currentTechnique = &shaderList[technique];
    if (m_currentTechnique->program == -1) {
-      sprintf_s(msg, 256, "Could not find shader technique %s", shaderTechniqueNames[technique].c_str());
+      sprintf_s(msg, sizeof(msg), "Could not find shader technique %s", shaderTechniqueNames[technique].c_str());
       ShowError(msg);
       exit(-1);
    }
@@ -703,7 +738,7 @@ void Shader::Begin(const unsigned int pass)
 
    auto tec = shaderList.find(techName);
    if (tec == shaderList.end()) {
-      sprintf_s(msg, 256, "Could not find shader technique %s", technique);
+      sprintf_s(msg, sizeof(msg), "Could not find shader technique %s", technique);
       ShowError(msg);
       exit(-1);
    }
@@ -985,10 +1020,10 @@ void Shader::Begin(const unsigned int pass)
       break;
       default:
 #ifdef TWEAK_GL_SHADER
-         sprintf_s(msg, 256, "Unknown uniform type 0x%0002X for %s in %s", currentUniform.type, 
+         sprintf_s(msg, sizeof(msg), "Unknown uniform type 0x%0002X for %s in %s", currentUniform.type, 
             shaderUniformNames[uniformName].c_str(), shaderTechniqueNames[technique].c_str());
 #else
-         sprintf_s(msg, 256, "Unknown uniform type 0x%0002X for %s in %s", currentUniform.type, uniformName.c_str(), techName.c_str());
+         sprintf_s(msg, sizeof(msg), "Unknown uniform type 0x%0002X for %s in %s", currentUniform.type, uniformName.c_str(), techName.c_str());
 #endif
          ShowError(msg);
          break;
