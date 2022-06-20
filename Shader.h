@@ -23,7 +23,7 @@
 #include <string>
 
 #if defined(ENABLE_SDL) && defined(TWEAK_GL_SHADER)
-//Todo tweak Enums for uniforms and techniques to reuse same numbers in different shaders/techniques. Reduces the array sizes, but might be hard to debug.
+//!! Todo tweak Enums for uniforms and techniques to reuse same numbers in different shaders/techniques. Reduces the array sizes, but might be hard to debug.
 enum shaderUniforms {
    //Floats
    SHADER_blend_modulate_vs_add, SHADER_alphaTestValue, SHADER_eye, SHADER_fKickerScale,
@@ -221,7 +221,7 @@ public:
    void Begin(const unsigned int pass);
    void End();
 
-   void SetTexture(const SHADER_UNIFORM_HANDLE texelName, Texture *texel, const bool clamptoedge = false);
+   void SetTexture(const SHADER_UNIFORM_HANDLE texelName, Texture *texel, const TextureFilter filter, const bool clampU, const bool clampV, const bool force_linear_rgb);
    void SetTexture(const SHADER_UNIFORM_HANDLE texelName, D3DTexture *texel);
    void SetTextureDepth(const SHADER_UNIFORM_HANDLE texelName, D3DTexture *texel);
    void SetTextureNull(const SHADER_UNIFORM_HANDLE texelName);
@@ -281,6 +281,7 @@ private:
 
 #ifdef ENABLE_SDL
    string m_shaderCodeName;
+   Texture* m_nullTexture;
 
 #if DEBUG_LEVEL_LOG > 0
    void LOG(const int level, const string& fileNameRoot, const string& message);

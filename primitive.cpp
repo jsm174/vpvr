@@ -593,7 +593,7 @@ void Primitive::AddHitEdge(vector<HitObject*> &pvho, robin_hood::unordered_set< 
 
    if (addedEdges.insert(p).second) // edge not yet added?
       SetupHitObject(pvho, new HitLine3D(vi, vj));
-   }
+}
 
 //
 // end of license:GPLv3+, back to 'old MAME'-like
@@ -1227,14 +1227,15 @@ void Primitive::RenderObject()
       pd3dDevice->SetRenderState(RenderDevice::ZWRITEENABLE, RenderDevice::RS_TRUE);
       pd3dDevice->SetRenderStateCulling(m_d.m_backfacesEnabled && mat->m_bOpacityActive ? RenderDevice::CULL_CW : RenderDevice::CULL_CCW);
 
-      pd3dDevice->basicShader->SetDisableLighting(vec4(m_d.m_disableLightingTop, m_d.m_disableLightingBelow, 0.f, 0.f));
+      if (m_d.m_disableLightingTop != 0.f || m_d.m_disableLightingBelow != 0.f)
+         pd3dDevice->basicShader->SetDisableLighting(vec4(m_d.m_disableLightingTop, m_d.m_disableLightingBelow, 0.f, 0.f));
 
       Texture * const nMap = m_ptable->GetImage(m_d.m_szNormalMap);
 
       if (g_pplayer->m_texPUP && m_d.m_isBackGlassImage)
       {
          pd3dDevice->basicShader->SetTechniqueMetal(SHADER_TECHNIQUE_basic_with_texture, mat->m_bIsMetal);
-         pd3dDevice->basicShader->SetTexture(SHADER_Texture0, pd3dDevice->m_texMan.LoadTexture(g_pplayer->m_texPUP, false));
+         pd3dDevice->basicShader->SetTexture(SHADER_Texture0, pd3dDevice->m_texMan.LoadTexture(g_pplayer->m_texPUP, TextureFilter::TEXTURE_MODE_TRILINEAR, false, false, false));
 
          //g_pplayer->m_pin3d.SetPrimaryTextureFilter(0, TEXTURE_MODE_TRILINEAR);
          // accommodate models with UV coords outside of [0,1]
@@ -1246,8 +1247,8 @@ void Primitive::RenderObject()
          if (pin && nMap)
          {
             pd3dDevice->basicShader->SetTechniqueMetal(SHADER_TECHNIQUE_basic_with_texture, mat->m_bIsMetal);
-            pd3dDevice->basicShader->SetTexture(SHADER_Texture0, pin, false);
-            pd3dDevice->basicShader->SetTexture(SHADER_Texture4, nMap, true);
+            pd3dDevice->basicShader->SetTexture(SHADER_Texture0, pin, TextureFilter::TEXTURE_MODE_TRILINEAR, false, false, false);
+            pd3dDevice->basicShader->SetTexture(SHADER_Texture4, nMap, TextureFilter::TEXTURE_MODE_TRILINEAR, false, false, true);
             pd3dDevice->basicShader->SetAlphaTestValue(pin->m_alphaTestValue * (float)(1.0 / 255.0));
             pd3dDevice->basicShader->SetBool(SHADER_objectSpaceNormalMap, m_d.m_objectSpaceNormalMap);
             //g_pplayer->m_pin3d.SetPrimaryTextureFilter(0, TEXTURE_MODE_TRILINEAR);
@@ -1257,7 +1258,7 @@ void Primitive::RenderObject()
          else if (pin)
          {
             pd3dDevice->basicShader->SetTechniqueMetal(SHADER_TECHNIQUE_basic_with_texture, mat->m_bIsMetal);
-            pd3dDevice->basicShader->SetTexture(SHADER_Texture0, pin, false);
+            pd3dDevice->basicShader->SetTexture(SHADER_Texture0, pin, TextureFilter::TEXTURE_MODE_TRILINEAR, false, false, false);
             pd3dDevice->basicShader->SetAlphaTestValue(pin->m_alphaTestValue * (float)(1.0 / 255.0));
 
             //g_pplayer->m_pin3d.SetPrimaryTextureFilter(0, TEXTURE_MODE_TRILINEAR);
@@ -1322,8 +1323,8 @@ void Primitive::RenderObject()
    {
       // shader is already fully configured in the playfield rendering case when we arrive here, so we only setup some special primitive params
 
-      //pd3dDevice->basicShader->SetDisableLighting(vec4(0.f, 1.f, 0.f, 0.f)); //!! disabled again, if enabling it, ALSO CHANGE THE RESET CONDITION SOME LINES BELOW to always be executed!!
-      pd3dDevice->basicShader->SetDisableLighting(vec4(m_d.m_disableLightingTop, m_d.m_disableLightingBelow, 0.f, 0.f));
+      if (m_d.m_disableLightingTop != 0.f || m_d.m_disableLightingBelow != 0.f)
+         pd3dDevice->basicShader->SetDisableLighting(vec4(m_d.m_disableLightingTop, m_d.m_disableLightingBelow, 0.f, 0.f));
 
       //pd3dDevice->SetRenderStateCulling(RenderDevice::CULL_CCW); // don't mess with the render states when doing playfield rendering
       // set transform

@@ -18,15 +18,15 @@ public:
       RGB_FP32		// Linear RGB, 1 float per channel
    };
 
-   BaseTexture(const int w, const int h, const Format format)
+   BaseTexture(const unsigned int w, const unsigned int h, const Format format)
       : m_width(w), m_height(h), m_data((format == RGBA || format == SRGBA ? 4 : 3) * (format == RGB_FP32 ? 4 : format == RGB_FP16 ? 2 : 1) * w * h), m_realWidth(w), m_realHeight(h), m_format(format)
    { }
 
-   int width() const       { return m_width; }
-   int height() const      { return m_height; }
-   int pitch() const       { return (has_alpha() ? 4 : 3) * (m_format == RGB_FP32 ? 4 : m_format == RGB_FP16 ? 2 : 1) * m_width; } // pitch in bytes
-   BYTE* data()            { return m_data.data(); }
-   bool has_alpha() const  { return m_format == RGBA || m_format == SRGBA; }
+   unsigned int width() const  { return m_width; }
+   unsigned int height() const { return m_height; }
+   unsigned int pitch() const  { return (has_alpha() ? 4 : 3) * (m_format == RGB_FP32 ? 4 : m_format == RGB_FP16 ? 2 : 1) * m_width; } // pitch in bytes
+   BYTE* data()                { return m_data.data(); }
+   bool has_alpha() const      { return m_format == RGBA || m_format == SRGBA; }
 
 private:
    unsigned int m_width, m_height;
@@ -38,7 +38,7 @@ public:
 
    static BaseTexture *CreateFromHBitmap(const HBITMAP hbm, bool with_alpha = true);
    static BaseTexture *CreateFromFile(const string& filename);
-   static BaseTexture *CreateFromFreeImage(FIBITMAP* dib); // also free's/delete's the dib inside!
+   static BaseTexture *CreateFromFreeImage(FIBITMAP *dib, bool resize_on_low_mem); // also free's/delete's the dib inside!
    static BaseTexture *CreateFromData(const void *data, const size_t size);
 };
 
@@ -53,7 +53,7 @@ public:
    virtual bool LoadToken(const int id, BiffReader * const pbr);
 
    HRESULT SaveToStream(IStream *pstream, const PinTable *pt);
-   HRESULT LoadFromStream(IStream *pstream, int version, PinTable *pt);
+   HRESULT LoadFromStream(IStream *pstream, int version, PinTable *pt, bool resize_on_low_mem);
 
    void FreeStuff();
 
@@ -80,14 +80,15 @@ public:
    void ReleaseTextureDC(HDC dc);
 
 private:
+   bool m_resize_on_low_mem;
    bool LoadFromMemory(BYTE * const data, const DWORD size);
 
 public:
 
    // width and height of texture can be different than width and height
    // of m_pdsBuffer, since the surface can be limited to smaller sizes by the user
-   int m_width, m_height;
-   int m_realWidth, m_realHeight;
+   unsigned int m_width, m_height;
+   unsigned int m_realWidth, m_realHeight;
    float m_alphaTestValue;
    BaseTexture* m_pdsBuffer;
 

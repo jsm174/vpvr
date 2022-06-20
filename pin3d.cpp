@@ -53,8 +53,8 @@ Pin3D::~Pin3D()
 
    SAFE_BUFFER_RELEASE(m_tableVBuffer);
 
-   SAFE_RELEASE(m_pddsAOBackBuffer);
-   SAFE_RELEASE(m_pddsAOBackTmpBuffer);
+   SAFE_RELEASE_RENDER_TARGET(m_pddsAOBackBuffer);
+   SAFE_RELEASE_RENDER_TARGET(m_pddsAOBackTmpBuffer);
 #ifndef ENABLE_SDL
    if (!m_pd3dPrimaryDevice->m_useNvidiaApi && m_pd3dPrimaryDevice->m_INTZ_support)
    {
@@ -544,9 +544,9 @@ HRESULT Pin3D::InitPrimary(const bool fullScreen, const int colordepth, int &ref
 
    if (m_pd3dPrimaryDevice->DepthBufferReadBackAvailable() && useAO) 
    {
-      m_pddsAOBackTmpBuffer = m_pd3dPrimaryDevice->CreateTexture(m_pd3dPrimaryDevice->getBufwidth(), m_pd3dPrimaryDevice->getBufheight(), 1, RENDERTARGET, colorFormat::GREY, nullptr, stereo3D);
+      m_pddsAOBackTmpBuffer = m_pd3dPrimaryDevice->CreateTexture(m_pd3dPrimaryDevice->getBufwidth(), m_pd3dPrimaryDevice->getBufheight(), 1, RENDERTARGET, colorFormat::GREY, nullptr, stereo3D, TextureFilter::TEXTURE_MODE_BILINEAR, false, false);
 
-      m_pddsAOBackBuffer = m_pd3dPrimaryDevice->CreateTexture(m_pd3dPrimaryDevice->getBufwidth(), m_pd3dPrimaryDevice->getBufheight(), 1, RENDERTARGET, colorFormat::GREY, nullptr, stereo3D);
+      m_pddsAOBackBuffer = m_pd3dPrimaryDevice->CreateTexture(m_pd3dPrimaryDevice->getBufwidth(), m_pd3dPrimaryDevice->getBufheight(), 1, RENDERTARGET, colorFormat::GREY, nullptr, stereo3D, TextureFilter::TEXTURE_MODE_BILINEAR, false, false);
 
        if (!m_pddsAOBackBuffer || !m_pddsAOBackTmpBuffer)
           return E_FAIL;
@@ -608,6 +608,9 @@ HRESULT Pin3D::InitPin3D()
 
    //
 
+   // Create the "static" color buffer.
+   // This will hold a pre-rendered image of the table and any non-changing elements (ie ramps, decals, etc).
+
    m_pinballEnvTexture.CreateFromResource(IDB_BALL);
    m_aoDitherTexture.CreateFromResource(IDB_AO_DITHER);
 
@@ -615,9 +618,12 @@ HRESULT Pin3D::InitPin3D()
    m_builtinEnvTexture.CreateFromResource(IDB_ENV);
 
    const Texture * const envTex = m_envTexture ? m_envTexture : &m_builtinEnvTexture;
-   const unsigned int envTexHeight = min(envTex->m_pdsBuffer->height(),256) / 8;
+
+   const unsigned int envTexHeight = min(envTex->m_pdsBuffer->height(),256u) / 8;
    const unsigned int envTexWidth = envTexHeight*2;
+
    m_envRadianceTexture = EnvmapPrecalc(envTex, envTexWidth, envTexHeight);
+
    m_pd3dPrimaryDevice->m_texMan.SetDirty(m_envRadianceTexture);
 
    //
@@ -815,22 +821,20 @@ void Pin3D::InitLights()
    //m_pd3dPrimaryDevice->classicLightShader->SetInt("iLightPointNum",MAX_LIGHT_SOURCES);
 #endif
 
-   g_pplayer->m_ptable->m_Light[0].pos.x = g_pplayer->m_ptable->m_right*0.5f;
-   g_pplayer->m_ptable->m_Light[1].pos.x = g_pplayer->m_ptable->m_right*0.5f;
-   g_pplayer->m_ptable->m_Light[0].pos.y = g_pplayer->m_ptable->m_bottom*(float)(1.0 / 3.0);
-   g_pplayer->m_ptable->m_Light[1].pos.y = g_pplayer->m_ptable->m_bottom*(float)(2.0 / 3.0);
+   g_pplayer->m_ptable->m_Light[0].pos.x = g_pplayer->m_ptable->m_right * 0.5f;
+   g_pplayer->m_ptable->m_Light[1].pos.x = g_pplayer->m_ptable->m_right * 0.5f;
+   g_pplayer->m_ptable->m_Light[0].pos.y = g_pplayer->m_ptable->m_bottom * (float)(1.0 / 3.0);
+   g_pplayer->m_ptable->m_Light[1].pos.y = g_pplayer->m_ptable->m_bottom * (float)(2.0 / 3.0);
    g_pplayer->m_ptable->m_Light[0].pos.z = g_pplayer->m_ptable->m_lightHeight;
    g_pplayer->m_ptable->m_Light[1].pos.z = g_pplayer->m_ptable->m_lightHeight;
 
    vec4 emission = convertColor(g_pplayer->m_ptable->m_Light[0].emission);
-   // Multiplying emission by the global emissionscale creates some weird results, some objects get very bright
-   //emission.x *= g_pplayer->m_ptable->m_lightEmissionScale*g_pplayer->m_globalEmissionScale;
-   //emission.y *= g_pplayer->m_ptable->m_lightEmissionScale*g_pplayer->m_globalEmissionScale;
-   //emission.z *= g_pplayer->m_ptable->m_lightEmissionScale*g_pplayer->m_globalEmissionScale;
+   emission.x *= g_pplayer->m_ptable->m_lightEmissionScale * g_pplayer->m_globalEmissionScale;
+   emission.y *= g_pplayer->m_ptable->m_lightEmissionScale * g_pplayer->m_globalEmissionScale;
+   emission.z *= g_pplayer->m_ptable->m_lightEmissionScale * g_pplayer->m_globalEmissionScale;
 
    float lightPos[MAX_LIGHT_SOURCES][4] = { 0.f };
    float lightEmission[MAX_LIGHT_SOURCES][4] = { 0.f };
-   constexpr int lightSources = MAX_LIGHT_SOURCES;
 
    for (unsigned int i = 0; i < MAX_LIGHT_SOURCES; i++)
    {
@@ -838,9 +842,8 @@ void Pin3D::InitLights()
        memcpy(&lightEmission[i], &emission, sizeof(float) * 3);
    }
 
-   m_pd3dPrimaryDevice->basicShader->SetFloatArray(SHADER_lightPos, (float *)lightPos, 4 * lightSources);
-   m_pd3dPrimaryDevice->basicShader->SetFloatArray(SHADER_lightEmission, (float *)lightEmission, 4 * lightSources);
-   m_pd3dPrimaryDevice->basicShader->SetInt(SHADER_lightSources, lightSources);
+   m_pd3dPrimaryDevice->basicShader->SetFloatArray(SHADER_lightPos, (float *)lightPos, 4 * MAX_LIGHT_SOURCES);
+   m_pd3dPrimaryDevice->basicShader->SetFloatArray(SHADER_lightEmission, (float *)lightEmission, 4 * MAX_LIGHT_SOURCES);
 
    vec4 amb_lr = convertColor(g_pplayer->m_ptable->m_lightAmbient, g_pplayer->m_ptable->m_lightRange);
    amb_lr.x *= g_pplayer->m_globalEmissionScale;
@@ -1201,7 +1204,7 @@ void Pin3D::RenderPlayfieldGraphics(const bool depth_only)
        {
            SetPrimaryTextureFilter(0, TEXTURE_MODE_ANISOTROPIC);
            m_pd3dPrimaryDevice->basicShader->SetTechniqueMetal(SHADER_TECHNIQUE_basic_depth_only_with_texture, mat->m_bIsMetal);
-           m_pd3dPrimaryDevice->basicShader->SetTexture(SHADER_Texture0, pin, false);
+           m_pd3dPrimaryDevice->basicShader->SetTexture(SHADER_Texture0, pin, TextureFilter::TEXTURE_MODE_TRILINEAR, false, false, false);
            m_pd3dPrimaryDevice->basicShader->SetAlphaTestValue(pin->m_alphaTestValue * (float)(1.0 / 255.0));
        }
        else // No image by that name
@@ -1211,13 +1214,11 @@ void Pin3D::RenderPlayfieldGraphics(const bool depth_only)
    {
        m_pd3dPrimaryDevice->basicShader->SetMaterial(mat);
 
-       m_pd3dPrimaryDevice->basicShader->SetDisableLighting(vec4(0.f, 1.f, 0.f, 0.f));
-
        if (pin)
        {
            SetPrimaryTextureFilter(0, TEXTURE_MODE_ANISOTROPIC);
            m_pd3dPrimaryDevice->basicShader->SetTechniqueMetal(SHADER_TECHNIQUE_basic_with_texture, mat->m_bIsMetal);
-           m_pd3dPrimaryDevice->basicShader->SetTexture(SHADER_Texture0, pin, false);
+           m_pd3dPrimaryDevice->basicShader->SetTexture(SHADER_Texture0, pin, TextureFilter::TEXTURE_MODE_TRILINEAR, false, false, false);
            m_pd3dPrimaryDevice->basicShader->SetAlphaTestValue(pin->m_alphaTestValue * (float)(1.0 / 255.0));
        }
        else // No image by that name

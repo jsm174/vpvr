@@ -338,7 +338,7 @@ void Decal::PreRenderText()
    BITMAPINFO bmi = {};
    bmi.bmiHeader.biSize = sizeof(BITMAPINFOHEADER);
    bmi.bmiHeader.biWidth = m_textImg->width();
-   bmi.bmiHeader.biHeight = -m_textImg->height();
+   bmi.bmiHeader.biHeight = -(LONG)m_textImg->height();
    bmi.bmiHeader.biPlanes = 1;
    bmi.bmiHeader.biBitCount = 32;
    bmi.bmiHeader.biCompression = BI_RGB;
@@ -378,9 +378,9 @@ void Decal::PreRenderText()
    // Copy and set to opaque
    D3DCOLOR* __restrict bitsd = (D3DCOLOR*)bits;
    D3DCOLOR* __restrict dest = (D3DCOLOR*)m_textImg->data();
-   for (int i = 0; i < m_textImg->height(); i++)
+   for (unsigned int i = 0; i < m_textImg->height(); i++)
    {
-      for (int l = 0; l < m_textImg->width(); l++, dest++, bitsd++)
+      for (unsigned int l = 0; l < m_textImg->width(); l++, dest++, bitsd++)
          *dest = *bitsd | 0xFF000000u;
       dest += m_textImg->pitch()/4 - m_textImg->width();
    }
@@ -533,7 +533,7 @@ void Decal::RenderObject()
          pd3dDevice->basicShader->SetTechniqueMetal(SHADER_TECHNIQUE_basic_with_texture, mat->m_bIsMetal);
       else
          pd3dDevice->basicShader->SetTechnique(SHADER_TECHNIQUE_bg_decal_with_texture);
-      pd3dDevice->basicShader->SetTexture(SHADER_Texture0, pd3dDevice->m_texMan.LoadTexture(m_textImg));
+      pd3dDevice->basicShader->SetTexture(SHADER_Texture0, pd3dDevice->m_texMan.LoadTexture(m_textImg, TextureFilter::TEXTURE_MODE_TRILINEAR, false, false, false));
       pd3dDevice->basicShader->SetAlphaTestValue(-1.0f);
    }
    else
@@ -545,7 +545,7 @@ void Decal::RenderObject()
             pd3dDevice->basicShader->SetTechniqueMetal(SHADER_TECHNIQUE_basic_with_texture, mat->m_bIsMetal);
          else
             pd3dDevice->basicShader->SetTechnique(SHADER_TECHNIQUE_bg_decal_with_texture);
-         pd3dDevice->basicShader->SetTexture(SHADER_Texture0, pin, false);
+         pd3dDevice->basicShader->SetTexture(SHADER_Texture0, pin, TextureFilter::TEXTURE_MODE_TRILINEAR, false, false, false);
          pd3dDevice->basicShader->SetAlphaTestValue(pin->m_alphaTestValue * (float)(1.0 / 255.0));
       }
       else

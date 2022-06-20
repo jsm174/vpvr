@@ -278,10 +278,10 @@ public:
    Player(const bool cameraMode, PinTable * const ptable);
    virtual ~Player();
 
-   virtual void PreRegisterClass(WNDCLASS& wc);
-   virtual void PreCreate(CREATESTRUCT& cs);
-   virtual void OnInitialUpdate();
-   virtual LRESULT WndProc(UINT uMsg, WPARAM wParam, LPARAM lParam);
+   virtual void PreRegisterClass(WNDCLASS& wc) override;
+   virtual void PreCreate(CREATESTRUCT& cs) override;
+   virtual void OnInitialUpdate() override;
+   virtual LRESULT WndProc(UINT uMsg, WPARAM wParam, LPARAM lParam) override;
 
 private:
    void RenderStaticMirror(const bool onlyBalls);
@@ -360,9 +360,8 @@ public:
 #ifdef ENABLE_SDL
    SDL_Window  *m_sdl_playfieldHwnd;
    SDL_Window  *m_sdl_backdropHwnd;
-#else
-   Shader      *m_ballShader;
 #endif
+   Shader      *m_ballShader;
 
    IndexBuffer *m_ballIndexBuffer;
    VertexBuffer *m_ballVertexBuffer;

@@ -315,8 +315,8 @@ RenderDevice(const int width, const int height, const bool fullscreen, const int
    D3DTexture* CreateSystemTexture(BaseTexture* const surf);
    D3DTexture* CreateSystemTexture(const int texwidth, const int texheight, const D3DFORMAT texformat, const void* data, const int pitch);
 #endif
-   D3DTexture* UploadTexture(BaseTexture* const surf, int* const pTexWidth = nullptr, int* const pTexHeight = nullptr, const bool clamptoedge = false);
-   void UpdateTexture(D3DTexture* const tex, BaseTexture* const surf);
+   D3DTexture* UploadTexture(BaseTexture* const surf, int* const pTexWidth, int* const pTexHeight, const TextureFilter filter, const bool clampU, const bool clampV, const bool force_linear_rgb);
+   void UpdateTexture(D3DTexture* const tex, BaseTexture* const surf, const bool force_linear_rgb);
 
    void SetRenderState(const RenderStates p1, DWORD p2);
    bool SetRenderStateCache(const RenderStates p1, DWORD p2);
@@ -333,7 +333,7 @@ RenderDevice(const int width, const int height, const bool fullscreen, const int
    void SetSamplerState(const DWORD Sampler, const DWORD minFilter, const DWORD magFilter, const SamplerStateValues mipFilter);
    void SetSamplerAnisotropy(const DWORD Sampler, DWORD Value);
 
-   D3DTexture* CreateTexture(UINT Width, UINT Height, UINT Levels, textureUsage Usage, colorFormat Format, void* data, int stereo, const bool clamptoedge = false);
+   D3DTexture* CreateTexture(UINT Width, UINT Height, UINT Levels, textureUsage Usage, colorFormat Format, void* data, int stereo, const TextureFilter filter, const bool clampU, const bool clampV);
 //   HRESULT CreateTexture(UINT Width, UINT Height, UINT Levels, textureUsage Usage, colorFormat Format, memoryPool Pool, D3DTexture** ppTexture, HANDLE* pSharedHandle);
 
 #ifdef ENABLE_SDL
@@ -343,6 +343,7 @@ RenderDevice(const int width, const int height, const bool fullscreen, const int
 #endif
 
    void DrawTexturedQuad();
+   void DrawTexturedQuad(const Vertex3D_TexelOnly* vertices);
    void DrawTexturedQuadPostProcess();
    
    void DrawPrimitiveVB(const PrimitiveTypes type, const DWORD fvf, VertexBuffer* vb, const DWORD startVertex, const DWORD vertexCount, const bool stereo);
@@ -381,6 +382,7 @@ RenderDevice(const int width, const int height, const bool fullscreen, const int
    unsigned int Perf_GetNumParameterChanges() const { return m_frameParameterChanges; }
    unsigned int Perf_GetNumTechniqueChanges() const { return m_frameTechniqueChanges; }
    unsigned int Perf_GetNumTextureUploads() const { return m_frameTextureUpdates; }
+   unsigned int Perf_GetNumLockCalls() const;
 
    void FreeShader();
 
@@ -509,7 +511,7 @@ public:
 #endif
 
    static VertexBuffer* m_quadVertexBuffer;      // internal vb for rendering quads //!! only on primary device for now!
-   //static VertexBuffer *m_quadDynVertexBuffer; // internal vb for rendering dynamic quads //!!
+   static VertexBuffer *m_quadDynVertexBuffer; // internal vb for rendering dynamic quads //!!
 
    // performance counters
    unsigned int m_curDrawCalls, m_frameDrawCalls;
@@ -519,7 +521,6 @@ public:
    unsigned int m_curTechniqueChanges, m_frameTechniqueChanges;
    unsigned int m_curTextureUpdates, m_frameTextureUpdates;
 
-   Shader *ballShader;
    Shader *basicShader;
    Shader *DMDShader;
    Shader *FBShader;

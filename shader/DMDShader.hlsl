@@ -2,32 +2,33 @@
 
 #include "Helpers.fxh"
 
-float4 vColor_Intensity;
-float4 vRes_Alpha_time;
+const float4 vColor_Intensity;
+const float4 vRes_Alpha_time;
 
 texture Texture0;
 
 sampler2D texSampler0 : TEXUNIT0 = sampler_state // DMD
 {
-	Texture	  = (Texture0);
+    Texture   = (Texture0);
     MIPFILTER = NONE;
     MAGFILTER = POINT;
     MINFILTER = POINT;
     // Set texture to mirror, so the alpha state of the texture blends correctly to the outside
-	ADDRESSU  = MIRROR;
-	ADDRESSV  = MIRROR;
+    ADDRESSU  = MIRROR;
+    ADDRESSV  = MIRROR;
+    SRGBTexture = false; //!! 0..100 false, but RGB true ???
 };
 
 sampler2D texSampler1 : TEXUNIT0 = sampler_state // Sprite
 {
-	Texture	  = (Texture0);
+    Texture   = (Texture0);
     MIPFILTER = LINEAR;
     MAGFILTER = LINEAR;
     MINFILTER = LINEAR;
     // Set texture to mirror, so the alpha state of the texture blends correctly to the outside
-	ADDRESSU  = MIRROR;
-	ADDRESSV  = MIRROR;
-	SRGBTexture = true;
+    ADDRESSU  = MIRROR;
+    ADDRESSV  = MIRROR;
+    SRGBTexture = true;
 };
 
 //
@@ -38,31 +39,31 @@ struct VS_OUTPUT
 { 
    float4 pos  : POSITION;
    float2 tex0 : TEXCOORD0;
-}; 
+};
 
-VS_OUTPUT vs_main (in float4 vPosition : POSITION0,
-                   in float2 tc        : TEXCOORD0)
+VS_OUTPUT vs_main (const in float4 vPosition : POSITION0,
+                   const in float2 tc        : TEXCOORD0)
 {
    VS_OUTPUT Out;
 
    Out.pos = float4(vPosition.xy, 0.0,1.0);
    Out.tex0 = tc;
-   
+
    return Out;
 }
 
 // transformation matrices (only used for flashers and backbox so far)
-float4x4 matWorldViewProj : WORLDVIEWPROJ;
+const float4x4 matWorldViewProj : WORLDVIEWPROJ;
 
-VS_OUTPUT vs_simple_world(in float4 vPosition : POSITION0,
-                          in float2 tc : TEXCOORD0)
+VS_OUTPUT vs_simple_world(const in float4 vPosition : POSITION0,
+                          const in float2 tc : TEXCOORD0)
 {
-    VS_OUTPUT Out;
+   VS_OUTPUT Out;
 
-    Out.pos = mul(vPosition, matWorldViewProj);
-    Out.tex0 = tc;
+   Out.pos = mul(vPosition, matWorldViewProj);
+   Out.tex0 = tc;
 
-    return Out;
+   return Out;
 }
 
 //
@@ -70,14 +71,14 @@ VS_OUTPUT vs_simple_world(in float4 vPosition : POSITION0,
 //
 
 #if 0 // raw pixelated output
-float4 ps_main_DMD_no(in VS_OUTPUT IN) : COLOR
+float4 ps_main_DMD_no(const in VS_OUTPUT IN) : COLOR
 {
    const float4 rgba = tex2Dlod(texSampler0, float4(IN.tex0, 0.,0.));
    float3 color = vColor_Intensity.xyz * vColor_Intensity.w; //!! create function that resembles LUT from VPM?
    if(rgba.a != 0.0)
-      color *= rgba.bgr;
+      color *= rgba.rgb;
    else
-      color *= rgba.b * (255.9 / 100.);
+      color *= rgba.r * (255.9 / 100.);
 
    return float4(InvToneMap(InvGamma(color)), vRes_Alpha_time.z); //!! meh, this sucks a bit performance-wise, but how to avoid this when doing fullscreen-tonemap/gamma without stencil and depth read?
 }
@@ -119,7 +120,7 @@ float2 gaussianPDF(const float2 xi)
 
 //!! this is incredibly heavy for a supposedly simple DMD output shader, but then again this is pretty robust for all kinds of scales and input resolutions now, plus also for 'distorted' output (via the flashers)!
 //!! gaussianPDF is even more heavy, introduces more noise and is only barely higher quality (=bit less moiree) 
-float4 ps_main_DMD(in VS_OUTPUT IN) : COLOR
+float4 ps_main_DMD(const in VS_OUTPUT IN) : COLOR
 {
    const float blur = /*gaussian: 4.0; /*/ 1.5; // 1.0..2.0 looks best (between sharp and blurry), and 1.5 matches the intention of the triangle filter (see triangularPDF calls below)!
    const float2 ddxs = ddx(IN.tex0)*blur; // use ddx and ddy to help the oversampling below/make filtering radius dependent on projected 'dots'/texel
@@ -144,9 +145,9 @@ float4 ps_main_DMD(in VS_OUTPUT IN) : COLOR
       const float d = smoothstep(0., 1., 1.0 - sqr(dist.x*dist.x + dist.y*dist.y));
 
       if (rgba.a != 0.0)
-         color2 += rgba.bgr * d;
+         color2 += rgba.rgb * d;
       else
-         color2 += rgba.b * (255.9 / 100.) * d;
+         color2 += rgba.r * (255.9 / 100.) * d;
    }
    color2 *= vColor_Intensity.xyz * (vColor_Intensity.w/samples); //!! create function that resembles LUT from VPM?
 
@@ -157,20 +158,20 @@ float4 ps_main_DMD(in VS_OUTPUT IN) : COLOR
       //collect glow from neighbors
    }*/
 
-   //if (rgba.b > 200.0)
+   //if (rgba.r > 200.0)
    //   return float4(InvToneMap(InvGamma(min(color2,float3(1.5,1.5,1.5))/*+colorg*/)), 0.5);
    //else
    return float4(InvToneMap(InvGamma(color2/*+colorg*/)), vRes_Alpha_time.z); //!! meh, this sucks a bit performance-wise, but how to avoid this when doing fullscreen-tonemap/gamma without stencil and depth read?
 }
 
-float4 ps_main_noDMD(in VS_OUTPUT IN) : COLOR
+float4 ps_main_noDMD(const in VS_OUTPUT IN) : COLOR
 {
    const float4 l = tex2D(texSampler1, IN.tex0);
 
    return float4(InvToneMap(/*InvGamma*/(l.xyz * vColor_Intensity.xyz * vColor_Intensity.w)), l.w); //!! meh, this sucks a bit performance-wise, but how to avoid this when doing fullscreen-tonemap/gamma without stencil and depth read?
 }
 
-float4 ps_main_noDMD_notex(in VS_OUTPUT IN) : COLOR
+float4 ps_main_noDMD_notex(const in VS_OUTPUT IN) : COLOR
 {
    return float4(InvToneMap(InvGamma(vColor_Intensity.xyz * vColor_Intensity.w)), 1.0); //!! meh, this sucks a bit performance-wise, but how to avoid this when doing fullscreen-tonemap/gamma without stencil and depth read?
 }

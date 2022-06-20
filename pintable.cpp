@@ -3516,7 +3516,7 @@ HRESULT PinTable::LoadGameFromStorage(IStorage *pstgRoot)
                      HRESULT hr;
                      if (SUCCEEDED(hr = pstgData->OpenStream(wszStmName, nullptr, STGM_DIRECT | STGM_READ | STGM_SHARE_EXCLUSIVE, 0, &pstmItem)))
                      {
-                        hr = LoadImageFromStream(pstmItem, i, loadfileversion);
+                        hr = LoadImageFromStream(pstmItem, i, loadfileversion, false);
                         if (FAILED(hr))
                            return;
                         pstmItem->Release();
@@ -3526,7 +3526,26 @@ HRESULT PinTable::LoadGameFromStorage(IStorage *pstgRoot)
                   cloadeditems++;
                }
             }
-            // due to multithreaded loading and pre-allocation, check if some images could not be loaded and erase them
+            // due to multithreaded loading and pre-allocation, check if some images could not be loaded, and perform a retry since more memory is available now
+            for (size_t i = 0; i < m_vimage.size(); ++i)
+                if (!m_vimage[i] || m_vimage[i]->m_pdsBuffer == nullptr)
+                {
+                    const string szStmName = "Image" + std::to_string(i);
+                    MAKE_WIDEPTR_FROMANSI(wszStmName, szStmName.c_str());
+
+                    IStream* pstmItem;
+                    HRESULT hr;
+                    if (SUCCEEDED(hr = pstgData->OpenStream(wszStmName, nullptr, STGM_DIRECT | STGM_READ | STGM_SHARE_EXCLUSIVE, 0, &pstmItem)))
+                    {
+                        hr = LoadImageFromStream(pstmItem, i, loadfileversion, true);
+                        if (SUCCEEDED(hr))
+                        {
+                            pstmItem->Release();
+                            pstmItem = nullptr;
+                        }
+                    }
+                }
+            // check if some images could not be loaded and erase them
             for (size_t i = 0; i < m_vimage.size(); ++i)
                 if (!m_vimage[i] || m_vimage[i]->m_pdsBuffer == nullptr)
                 {
@@ -6764,10 +6783,10 @@ bool PinTable::ExportImage(const Texture * const ppi, const char * const szfilen
       if (hFile == INVALID_HANDLE_VALUE)
          return false;
 
-      const int surfwidth = ppi->m_width;					// texture width 
-      const int surfheight = ppi->m_height;					// and height		
+      const unsigned int surfwidth  = ppi->m_width;				// texture width
+      const unsigned int surfheight = ppi->m_height;			// and height
 
-      const int bmplnsize = (surfwidth * 4 + 3) & -4;		// line size ... 4 bytes per pixel + pad to 4 byte boundary		
+      const unsigned int bmplnsize = (surfwidth * 4 + 3) & -4;	// line size ... 4 bytes per pixel + pad to 4 byte boundary		
 
       //<<<< began bmp file header and info <<<<<<<<<<<<<<<
 
@@ -6808,10 +6827,10 @@ bool PinTable::ExportImage(const Texture * const ppi, const char * const szfilen
       unsigned char* info;
       for (info = sinfo + surfwidth * 3; info < sinfo + bmplnsize; *info++ = 0); //fill padding with 0			
 
-      const int pitch = ppi->m_pdsBuffer->pitch();
+      const unsigned int pitch = ppi->m_pdsBuffer->pitch();
       const BYTE *spch = ppi->m_pdsBuffer->data() + (surfheight * pitch); // just past the end of the Texture part of DD surface
 
-      for (int i = 0; i < surfheight; i++)
+      for (unsigned int i = 0; i < surfheight; i++)
       {
          const BYTE * const pch = (spch -= pitch); // start on previous previous line
          memcpy(sinfo, pch, surfwidth*4);
@@ -6832,10 +6851,10 @@ bool PinTable::ExportImage(const Texture * const ppi, const char * const szfilen
       FIBITMAP *dib = FreeImage_Allocate(ppi->m_width, ppi->m_height, ppi->m_pdsBuffer->has_alpha() ? 32 : 24);
       BYTE * const psrc = FreeImage_GetBits(dib);
 
-      const int pitch = ppi->m_pdsBuffer->pitch();
+      const unsigned int pitch = ppi->m_pdsBuffer->pitch();
       const BYTE *spch = ppi->m_pdsBuffer->data() + (ppi->m_height * pitch); // just past the end of the Texture part of DD surface
 
-      for (int i = 0; i < ppi->m_height; i++)
+      for (unsigned int i = 0; i < ppi->m_height; i++)
       {
          const BYTE * const pch = (spch -= pitch); // start on previous previous line
          memcpy(psrc + i * pitch, pch, pitch);
@@ -6915,7 +6934,8 @@ int PinTable::AddListImage(HWND hwndListView, Texture * const ppi)
    lvitem.pszText = (LPSTR)ppi->m_szName.c_str();
    lvitem.lParam = (size_t)ppi;
 
-   _snprintf_s(sizeString, MAXTOKEN-1, "%ix%i", ppi->m_realWidth, ppi->m_realHeight);
+   //_snprintf_s(sizeString, MAXTOKEN-1, "%ix%i", ppi->m_realWidth, ppi->m_realHeight);
+   _snprintf_s(sizeString, MAXTOKEN - 1, "%ix%i", ppi->m_width, ppi->m_height);
    const int index = ListView_InsertItem(hwndListView, &lvitem);
 
    ListView_SetItemText(hwndListView, index, 1, (LPSTR)ppi->m_szPath.c_str());
@@ -7481,7 +7501,7 @@ int PinTable::AddListItem(HWND hwndListView, const string& szName, const string&
    return index;
 }
 
-HRESULT PinTable::LoadImageFromStream(IStream *pstm, unsigned int idx, int version)
+HRESULT PinTable::LoadImageFromStream(IStream *pstm, unsigned int idx, int version, bool resize_on_low_mem)
 {
    if (version < 100) // Tech Beta 3 and below
    {
@@ -7492,7 +7512,7 @@ HRESULT PinTable::LoadImageFromStream(IStream *pstm, unsigned int idx, int versi
    {
       Texture * const ppi = new Texture();
 
-      if (ppi->LoadFromStream(pstm, version, this) == S_OK)
+      if (ppi->LoadFromStream(pstm, version, this, resize_on_low_mem) == S_OK)
          m_vimage[idx] = ppi;
       else
          delete ppi;

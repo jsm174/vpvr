@@ -2,7 +2,9 @@
 #include "IndexBuffer.h"
 #include "RenderDevice.h"
 
-//Disabled since it still has some bugs
+extern unsigned m_curLockCalls, m_frameLockCalls;
+
+//!! Disabled since it still has some bugs
 #define COMBINE_BUFFERS 0
 
 IndexBuffer* IndexBuffer::m_curIndexBuffer = nullptr; // is also reset before each Player start
@@ -113,6 +115,7 @@ IndexBuffer* IndexBuffer::CreateAndFillIndexBuffer(const std::vector<unsigned in
 
 void IndexBuffer::lock(const unsigned int offsetToLock, const unsigned int sizeToLock, void **dataBuffer, const DWORD flags)
 {
+   m_curLockCalls++;
 #ifdef ENABLE_SDL
    if (sizeToLock == 0)
       this->sizeToLock = size;
@@ -194,7 +197,7 @@ void IndexBuffer::UploadData(bool freeData)
    else
       glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, Buffer);
    glBufferSubData(GL_ELEMENT_ARRAY_BUFFER, offset + offsetToLock, min(sizeToLock, size - offsetToLock), dataBuffer);
-   glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
+   m_curIndexBuffer = this;
    if (freeData)
       free(dataBuffer);
    dataBuffer = nullptr;
@@ -258,10 +261,11 @@ void IndexBuffer::UploadBuffers()
       glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, Buffer32);
       glBufferData(GL_ELEMENT_ARRAY_BUFFER, size32, nullptr, GL_STATIC_DRAW);
    }
+   glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
+   m_curIndexBuffer = nullptr;
    //Upload all Buffers
    for (auto it = notUploadedBuffers.begin(); it != notUploadedBuffers.end(); ++it)
       (*it)->UploadData(true);
-   glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
    notUploadedBuffers.clear();
 }
 #endif
