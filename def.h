@@ -53,23 +53,23 @@ __forceinline T saturate(const T x)
 }
 
 template <typename T>
-inline void RemoveFromVector(std::vector<T>& v, const T& val)
+inline void RemoveFromVector(vector<T>& v, const T& val)
 {
    v.erase(std::remove(v.begin(), v.end(), val), v.end());
 }
 
 template <typename T>
-inline void RemoveFromVectorSingle(std::vector<T>& v, const T& val)
+inline void RemoveFromVectorSingle(vector<T>& v, const T& val)
 {
-   typename std::vector<T>::const_iterator it = std::find(v.begin(), v.end(), val);
+   typename vector<T>::const_iterator it = std::find(v.begin(), v.end(), val);
    if (it != v.end())
       v.erase(it);
 }
 
 template <typename T>
-inline int FindIndexOf(const std::vector<T>& v, const T& val)
+inline int FindIndexOf(const vector<T>& v, const T& val)
 {
-   typename std::vector<T>::const_iterator it = std::find(v.begin(), v.end(), val);
+   typename vector<T>::const_iterator it = std::find(v.begin(), v.end(), val);
    if (it != v.end())
       return (int)(it - v.begin());
    else
@@ -78,8 +78,6 @@ inline int FindIndexOf(const std::vector<T>& v, const T& val)
 
 #define fTrue 1
 #define fFalse 0
-
-#define BOOL int
 
 typedef unsigned int    U32;
 typedef signed int      S32;
@@ -91,8 +89,8 @@ typedef unsigned char    U8;
 typedef signed char      S8;
 typedef float           F32;
 typedef double          F64;
-typedef unsigned _int64 U64;
-typedef _int64          S64;
+typedef uint64_t        U64;
+typedef int64_t         S64;
 
 #define MAXNAMEBUFFER 32
 #define MAXSTRING 1024 // usually used for paths,filenames,etc
@@ -107,7 +105,7 @@ inline void ref_count_trigger(const ULONG r, const char *file, const int line) /
 {
 #ifdef DEBUG_REFCOUNT_TRIGGER
    char msg[128];
-   sprintf_s(msg, 128, "Ref Count: %u at %s:%d", r, file, line);
+   sprintf_s(msg, sizeof(msg), "Ref Count: %u at %s:%d", r, file, line);
    /*g_pvp->*/MessageBox(nullptr, msg, "Error", MB_OK | MB_ICONEXCLAMATION);
 #endif
 }
@@ -199,7 +197,9 @@ public:
    WCHAR m_szbuffer[256];
 };
 
-#define M_PI 3.1415926535897932384626433832795
+#ifndef M_PI
+  #define M_PI 3.1415926535897932384626433832795
+#endif
 
 #define ANGTORAD(x) ((x) *(float)(M_PI/180.0))
 #define RADTOANG(x) ((x) *(float)(180.0/M_PI))
@@ -429,7 +429,6 @@ inline int WideCharToMultiByteNull(
         lpMultiByteStr[cbMultiByte-1] = '\0';
     return res;
 }
-
 
 // in case the incoming string length is >= the maximum wchar length of the outgoing one, MultiByteToWideChar will not produce a zero terminated string
 // this variant always makes sure that the outgoing string is zero terminated

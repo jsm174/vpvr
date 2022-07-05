@@ -5,8 +5,13 @@
 #if !defined(AFX_VPINBALL_H__4D32616D_55B5_4FE0_87D9_3D4CB0BE3C76__INCLUDED_)
 #define AFX_VPINBALL_H__4D32616D_55B5_4FE0_87D9_3D4CB0BE3C76__INCLUDED_
 
+#ifndef __APPLE__
 #include <wxx_dockframe.h>
+#endif
+
 #include "RenderDevice.h"
+
+#ifndef __APPLE__
 #include "ImageDialog.h"
 #include "SoundDialog.h"
 #include "EditorOptionsDialog.h"
@@ -26,6 +31,7 @@
 #include "Properties/PropertyDialog.h"
 #ifdef ENABLE_SDL
 #include "VROptionsDialog.h"
+#endif
 #endif
 
 class PinTable;
@@ -162,11 +168,13 @@ public:
        }
     }
 
+#ifndef __APPLE__
     SendMessage(m_hwndStatusBar, SB_SETTEXT, 5 | 0, (size_t)textBuf.c_str());
+#endif
    }
 
-   bool OpenFileDialog(const string& initDir, std::vector<std::string>& filename, const char* const fileFilter, const char* const defaultExt, const DWORD flags, const std::string& windowTitle = string());
-   bool SaveFileDialog(const string& initDir, std::vector<std::string>& filename, const char* const fileFilter, const char* const defaultExt, const DWORD flags, const std::string& windowTitle = string());
+   bool OpenFileDialog(const string& initDir, vector<string>& filename, const char* const fileFilter, const char* const defaultExt, const DWORD flags, const string& windowTitle = string());
+   bool SaveFileDialog(const string& initDir, vector<string>& filename, const char* const fileFilter, const char* const defaultExt, const DWORD flags, const string& windowTitle = string());
 
    CDockProperty* GetPropertiesDocker();
    CDockToolbar *GetToolbarDocker();
@@ -259,7 +267,9 @@ protected:
    virtual LRESULT WndProc(UINT uMsg, WPARAM wParam, LPARAM lParam);
    virtual LRESULT OnMDIActivated(UINT msg, WPARAM wparam, LPARAM lparam);
    virtual LRESULT OnMDIDestroyed(UINT msg, WPARAM wparam, LPARAM lparam);
+#ifndef __APPLE__
    virtual CDocker *NewDockerFromID(int id);
+#endif
 
 private:
 
@@ -270,7 +280,7 @@ private:
 
    volatile bool m_unloadingTable;
    CMenu m_mainMenu;
-   std::vector<std::string> m_recentTableList;
+   vector<string> m_recentTableList;
 
    HANDLE  m_workerthread;
    unsigned int m_workerthreadid;
@@ -301,7 +311,7 @@ private:
    NotesDialog *m_notesDialog = nullptr;
    CDockNotes* m_dockNotes = nullptr;
 
-   FILE *m_profile_file;
+   FILE *m_profile_file = nullptr;
 };
 
 

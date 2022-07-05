@@ -6,7 +6,7 @@
 #define AFX_HITTARGET_H__A67DE998_7D97_4E03_BE91_55BFD3A48DB6__INCLUDED_
 
 #include "resource.h"
-#include <inc/robin_hood.h>
+#include "inc/robin_hood.h"
 
 // Indices for RotAndTra:
 //     RotX = 0
@@ -170,7 +170,7 @@ public:
    virtual void SetDefaultPhysics(bool fromMouseClick);
    virtual void ExportMesh(ObjLoader& loader);
 
-   void GenerateMesh(std::vector<Vertex3D_NoTex2> &buf);
+   void GenerateMesh(vector<Vertex3D_NoTex2> &buf);
    void TransformVertices();
    void SetMeshType(const TargetType type);
    void UpdateStatusBarInfo();
@@ -198,14 +198,14 @@ private:
    PropertyPane *m_propPosition;
    PropertyPane *m_propPhysics;
 
-   std::vector<HitObject*> m_vhoCollidable; // Objects to that may be collide selectable
+   vector<HitObject*> m_vhoCollidable; // Objects to that may be collide selectable
 
    VertexBuffer *m_vertexBuffer;
    IndexBuffer *m_indexBuffer;
 
    // Vertices for editor display & hit shape
-   std::vector<Vertex3Ds> m_hitUIVertices;
-   std::vector<Vertex3D_NoTex2> m_transformedVertices;
+   vector<Vertex3Ds> m_hitUIVertices;
+   vector<Vertex3D_NoTex2> m_transformedVertices;
    U32   m_timeStamp;
    float m_moveAnimationOffset;
    bool  m_moveAnimation;

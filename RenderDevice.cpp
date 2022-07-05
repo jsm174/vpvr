@@ -1,6 +1,12 @@
 #include "stdafx.h"
 
+#ifndef __APPLE__
 #include <DxErr.h>
+#endif
+
+#ifdef __APPLE__
+#include <map>
+#endif
 
 //#include "Dwmapi.h" // use when we get rid of XP at some point, get rid of the manual dll loads in here then
 
@@ -10,7 +16,7 @@
 
 #include "typedefs3D.h"
 #ifdef ENABLE_SDL
-#include "sdl2/SDL_syswm.h"
+#include <SDL_syswm.h>
 #endif
 #include "RenderDevice.h"
 #include "TextureManager.h"
@@ -76,6 +82,7 @@ static pRGV mRtlGetVersion = nullptr;
 
 bool IsWindows10_1803orAbove()
 {
+#ifndef __APPLE__
    if (mRtlGetVersion == nullptr)
       mRtlGetVersion = (pRGV)GetProcAddress(GetModuleHandle(TEXT("ntdll")), "RtlGetVersion"); // apparently the only really reliable solution to get the OS version (as of Win10 1803)
 
@@ -94,6 +101,9 @@ bool IsWindows10_1803orAbove()
    }
 
    return false;
+#else
+   return true;
+#endif
 }
 
 #ifdef ENABLE_SDL
@@ -256,12 +266,12 @@ static const char* glErrorToString(const int error) {
 
 void ReportFatalError(const HRESULT hr, const char *file, const int line)
 {
-   char msg[2048+128];
+   char msg[2176];
 #ifdef ENABLE_SDL
-   sprintf_s(msg, "GL Fatal Error 0x%0002X %s in %s:%d", hr, glErrorToString(hr), file, line);
+   sprintf_s(msg, sizeof(msg), "GL Fatal Error 0x%0002X %s in %s:%d", (unsigned int)hr, glErrorToString(hr), file, line);
    ShowError(msg);
 #else
-   sprintf_s(msg, "Fatal error %s (0x%x: %s) at %s:%d", DXGetErrorString(hr), hr, DXGetErrorDescription(hr), file, line);
+   sprintf_s(msg, sizeof(msg), "Fatal error %s (0x%x: %s) at %s:%d", DXGetErrorString(hr), hr, DXGetErrorDescription(hr), file, line);
    ShowError(msg);
    exit(-1);
 #endif
@@ -269,12 +279,12 @@ void ReportFatalError(const HRESULT hr, const char *file, const int line)
 
 void ReportError(const char *errorText, const HRESULT hr, const char *file, const int line)
 {
-   char msg[2048+128];
+   char msg[2176];
 #ifdef ENABLE_SDL
-   sprintf_s(msg, "GL Error 0x%0002X %s in %s:%d\n%s", hr, glErrorToString(hr), file, line, errorText);
+   sprintf_s(msg, sizeof(msg), "GL Error 0x%0002X %s in %s:%d\n%s", (unsigned int)hr, glErrorToString(hr), file, line, errorText);
    ShowError(msg);
 #else
-   sprintf_s(msg, "%s %s (0x%x: %s) at %s:%d", errorText, DXGetErrorString(hr), hr, DXGetErrorDescription(hr), file, line);
+   sprintf_s(msg, sizeof(msg), "%s %s (0x%x: %s) at %s:%d", errorText, DXGetErrorString(hr), hr, DXGetErrorDescription(hr), file, line);
    ShowError(msg);
    exit(-1);
 #endif
@@ -419,7 +429,7 @@ int getNumberOfDisplays()
 #endif
 }
 
-void EnumerateDisplayModes(const int display, std::vector<VideoMode>& modes)
+void EnumerateDisplayModes(const int display, vector<VideoMode>& modes)
 {
    modes.clear();
 
@@ -462,7 +472,7 @@ void EnumerateDisplayModes(const int display, std::vector<VideoMode>& modes)
       modes.push_back(vmode);
    }
 #else
-   std::vector<DisplayConfig> displays;
+   vector<DisplayConfig> displays;
    getDisplayList(displays);
    if (display >= (int)displays.size())
       return;
@@ -502,7 +512,7 @@ void EnumerateDisplayModes(const int display, std::vector<VideoMode>& modes)
 #endif
 }
 
-//int getDisplayList(std::vector<DisplayConfig>& displays)
+//int getDisplayList(vector<DisplayConfig>& displays)
 //{
 //   int maxAdapter = SDL_GetNumVideoDrivers();
 //   int display = 0;
@@ -530,9 +540,11 @@ void EnumerateDisplayModes(const int display, std::vector<VideoMode>& modes)
 
 BOOL CALLBACK MonitorEnumList(__in  HMONITOR hMonitor, __in  HDC hdcMonitor, __in  LPRECT lprcMonitor, __in  LPARAM dwData)
 {
-   std::map<std::string,DisplayConfig>* data = reinterpret_cast<std::map<std::string,DisplayConfig>*>(dwData);
+#ifndef __APPLE__
+   std::map<string,DisplayConfig>* data = reinterpret_cast<std::map<string,DisplayConfig>*>(dwData);
    MONITORINFOEX info;
    info.cbSize = sizeof(MONITORINFOEX);
+
    GetMonitorInfo(hMonitor, &info);
    DisplayConfig config = {};
    config.top = info.rcMonitor.top;
@@ -547,16 +559,19 @@ BOOL CALLBACK MonitorEnumList(__in  HMONITOR hMonitor, __in  HDC hdcMonitor, __i
    config.adapter = -1;
 #endif
    memcpy(config.DeviceName, info.szDevice, CCHDEVICENAME); // Internal display name e.g. "\\\\.\\DISPLAY1"
-   data->insert(std::pair<std::string, DisplayConfig>(config.DeviceName, config));
+   data->insert(std::pair<string, DisplayConfig>(config.DeviceName, config));
+#endif
    return TRUE;
 }
 
-int getDisplayList(std::vector<DisplayConfig>& displays)
+int getDisplayList(vector<DisplayConfig>& displays)
 {
    displays.clear();
-   std::map<std::string, DisplayConfig> displayMap;
+   std::map<string, DisplayConfig> displayMap;
    // Get the resolution of all enabled displays.
+#ifndef __APPLE__
    EnumDisplayMonitors(nullptr, nullptr, MonitorEnumList, reinterpret_cast<LPARAM>(&displayMap));
+#endif
 
 #ifndef ENABLE_SDL
    IDirect3D9* pD3D = Direct3DCreate9(D3D_SDK_VERSION);
@@ -570,7 +585,7 @@ int getDisplayList(std::vector<DisplayConfig>& displays)
    for (int i = 0;i < adapterCount;++i) {
       D3DADAPTER_IDENTIFIER9 adapter;
       pD3D->GetAdapterIdentifier(i, 0, &adapter);
-      std::map<std::string, DisplayConfig>::iterator display = displayMap.find(adapter.DeviceName);
+      std::map<string, DisplayConfig>::iterator display = displayMap.find(adapter.DeviceName);
       if (display != displayMap.end()) {
          display->second.adapter = i;
          strncpy_s(display->second.GPU_Name, adapter.Description, sizeof(display->second.GPU_Name)-1);
@@ -581,7 +596,7 @@ int getDisplayList(std::vector<DisplayConfig>& displays)
 
    // Apply the same numbering as windows
    int i = 0;
-   for (std::map<std::string, DisplayConfig>::iterator display = displayMap.begin(); display != displayMap.end(); ++display)
+   for (std::map<string, DisplayConfig>::iterator display = displayMap.begin(); display != displayMap.end(); ++display)
    {
       if (display->second.adapter >= 0) {
          display->second.display = i;
@@ -601,9 +616,9 @@ int getDisplayList(std::vector<DisplayConfig>& displays)
 
 bool getDisplaySetupByID(const int display, int &x, int &y, int &width, int &height)
 {
-   std::vector<DisplayConfig> displays;
+   vector<DisplayConfig> displays;
    getDisplayList(displays);
-   for (std::vector<DisplayConfig>::iterator displayConf = displays.begin(); displayConf != displays.end(); ++displayConf) {
+   for (vector<DisplayConfig>::iterator displayConf = displays.begin(); displayConf != displays.end(); ++displayConf) {
       if ((display == -1 && displayConf->isPrimary) || display == displayConf->display) {
          x = displayConf->left;
          y = displayConf->top;
@@ -621,9 +636,9 @@ bool getDisplaySetupByID(const int display, int &x, int &y, int &width, int &hei
 
 int getPrimaryDisplay()
 {
-   std::vector<DisplayConfig> displays;
+   vector<DisplayConfig> displays;
    getDisplayList(displays);
-   for (std::vector<DisplayConfig>::iterator displayConf = displays.begin(); displayConf != displays.end(); ++displayConf)
+   for (vector<DisplayConfig>::iterator displayConf = displays.begin(); displayConf != displays.end(); ++displayConf)
       if (displayConf->isPrimary)
          return displayConf->adapter;
    return 0;
@@ -867,21 +882,44 @@ void RenderDevice::CreateDevice(int &refreshrate, UINT adapterIndex)
    int disp_x, disp_y, disp_w, disp_h;
    getDisplaySetupByID(m_adapter, disp_x, disp_y, disp_w, disp_h);
 
+#ifndef __APPLE__
    const bool disableVRPreview = (m_stereo3D == STEREO_VR) && LoadValueBoolWithDefault("PlayerVR", "VRPreviewDisabled", false);
+#else
+   const bool disableVRPreview = true;
 
+   disp_x = 0;
+   disp_y = 0;
+   disp_w = 1024;
+   disp_h = 768;
+
+   SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE);
+   SDL_GL_SetAttribute(SDL_GL_CONTEXT_FLAGS, SDL_GL_CONTEXT_FORWARD_COMPATIBLE_FLAG);
+   SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 4);
+   SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 1);
+#endif
+   
    if (!disableVRPreview)
       m_sdl_playfieldHwnd = SDL_CreateWindow(
          "Visual Pinball Player SDL", disp_x + (disp_w - m_width) / 2, disp_y + (disp_h - m_height) / 2, m_width, m_height,
          SDL_WINDOW_OPENGL | SDL_WINDOW_SHOWN | (m_fullscreen ? SDL_WINDOW_FULLSCREEN : 0));
-   else
+   else {
+#ifndef __APPLE__
       m_sdl_playfieldHwnd = SDL_CreateWindow(
          "Visual Pinball Player SDL", disp_x + (disp_w - 640) / 2, disp_y + (disp_h - 480) / 2, 640, 480,
          SDL_WINDOW_OPENGL | SDL_WINDOW_HIDDEN);
+#else
+      m_sdl_playfieldHwnd = SDL_CreateWindow(
+         "Visual Pinball Player SDL", disp_x + (disp_w - 1024) / 2, disp_y + (disp_h - 768) / 2, 1024, 768,
+         SDL_WINDOW_OPENGL | SDL_WINDOW_SHOWN);
+#endif
+   }
 
    SDL_SysWMinfo wmInfo;
    SDL_VERSION(&wmInfo.version);
    SDL_GetWindowWMInfo(m_sdl_playfieldHwnd, &wmInfo);
+#ifndef __APPLE__
    m_windowHwnd = wmInfo.info.win.window;
+#endif
 
    m_sdl_context = SDL_GL_CreateContext(m_sdl_playfieldHwnd);
 
@@ -899,7 +937,7 @@ void RenderDevice::CreateDevice(int &refreshrate, UINT adapterIndex)
 
    if (gl_majorVersion < 3 || (gl_majorVersion == 3 && gl_minorVersion < 2)) {
       char errorMsg[256];
-      sprintf_s(errorMsg, 256, "Your graphics card only supports OpenGL %d.%d, but VPVR requires OpenGL 3.2 or newer.", gl_majorVersion, gl_minorVersion);
+      sprintf_s(errorMsg, sizeof(errorMsg), "Your graphics card only supports OpenGL %d.%d, but VPVR requires OpenGL 3.2 or newer.", gl_majorVersion, gl_minorVersion);
       ShowError(errorMsg);
       exit(-1);
    }
@@ -1105,8 +1143,14 @@ bool RenderDevice::LoadShaders()
    }
 
    Shader::shaderPath = string(glShaderPath);
+
+#ifndef __APPLE__
    Shader::shaderPath = Shader::shaderPath.substr(0, Shader::shaderPath.find_last_of("\\/"));
    Shader::shaderPath.append("\\glshader\\");
+#else
+   Shader::shaderPath.append("./glshader/");
+#endif
+
    basicShader = new Shader(this);
    shaderCompilationOkay = basicShader->Load("BasicShader.glfx", 0) && shaderCompilationOkay;
 
@@ -1974,11 +2018,12 @@ D3DTexture* RenderDevice::UploadTexture(BaseTexture* surf, int *pTexWidth, int *
        format = colorFormat::RGB16F;
    else if (surf->m_format == BaseTexture::RGB_FP32)
        format = colorFormat::RGB32F;
-   if (force_linear_rgb)
+   if (force_linear_rgb) {
        if (format == colorFormat::SRGB)
            format = colorFormat::RGB;
        else if (format == colorFormat::SRGBA)
            format = colorFormat::RGBA;
+   }
    D3DTexture *tex = CreateTexture(surf->width(), surf->height(), 0, STATIC, format, surf->data(), 0, filter, clampU, clampV);
    if (pTexWidth) *pTexWidth = surf->width();
    if (pTexHeight) *pTexHeight = surf->height();
@@ -2334,11 +2379,12 @@ void RenderDevice::UpdateTexture(D3DTexture* const tex, BaseTexture* const surf,
       tex->format = colorFormat::RGB16F;
    else if (surf->m_format == BaseTexture::RGB_FP32)
       tex->format = colorFormat::RGB32F;
-   if (force_linear_rgb)
+   if (force_linear_rgb) {
        if (tex->format == colorFormat::SRGB)
            tex->format = colorFormat::RGB;
        else if (tex->format == colorFormat::SRGBA)
            tex->format = colorFormat::RGBA;
+   }
    colorFormat Format = tex->format;
    const GLuint col_type = ((Format == RGBA32F) || (Format == RGB32F)) ? GL_FLOAT : ((Format == RGBA16F) || (Format == RGB16F)) ? GL_HALF_FLOAT : GL_UNSIGNED_BYTE;
    const GLuint col_format = ((Format == GREY) || (Format == RED16F)) ? GL_RED : ((Format == GREY_ALPHA) || (Format == RG16F)) ? GL_RG : ((Format == RGB) || (Format == RGB8) || (Format == SRGB) || (Format == SRGB8) || (Format == RGB5) || (Format == RGB10) || (Format == RGB16F) || (Format == RGB32F)) ? GL_RGB : GL_RGBA;
@@ -2679,7 +2725,7 @@ void RenderDevice::SetRenderStateClipPlane0(const bool enabled)
       glDisable(GL_CLIP_DISTANCE0);
 #else
    CHECKD3D(m_pD3DDevice->SetRenderState((D3DRENDERSTATETYPE)CLIPPLANEENABLE, enabled ? PLANE0 : 0));
-#endif 
+#endif
    m_curStateChanges++;
 }
 
@@ -3079,7 +3125,7 @@ D3DTexture* RenderDevice::CreateTexture(UINT Width, UINT Height, UINT Levels, te
             errorCode = "unknown";
             break;
          }
-         sprintf_s(msg, 256, "glCheckFramebufferStatus returned 0x%0002X %s", glCheckFramebufferStatus(tex->framebuffer), errorCode);
+         sprintf_s(msg, sizeof(msg), "glCheckFramebufferStatus returned 0x%0002X %s", glCheckFramebufferStatus(tex->framebuffer), errorCode);
          ShowError(msg);
          exit(-1);
       }
@@ -3142,7 +3188,8 @@ D3DTexture* RenderDevice::CreateTexture(UINT Width, UINT Height, UINT Levels, te
    }
 
    const int num_mips = (int)std::log2(float(max(Width, Height))) + 1;
-   if (m_GLversion >= 403)
+
+   if (m_GLversion >= 403 || GLAD_GL_ARB_texture_storage)
       glTexStorage2D(GL_TEXTURE_2D, num_mips, comp_format, Width, Height);
    else { // should never be triggered nowadays
       GLsizei w = Width;

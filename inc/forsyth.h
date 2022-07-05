@@ -31,7 +31,7 @@ typedef unsigned short ScoreType;
 #define SCORE_SCALING 7281
 
 typedef unsigned char AdjacencyType;
-#define MAX_ADJACENCY 0xffui8
+#define MAX_ADJACENCY UINT8_MAX
 
 typedef unsigned int VertexIndexType;
 typedef signed char  CachePosType;
@@ -122,7 +122,7 @@ inline ScoreType findVertexScore(const int numActiveTris,
 
 // The main reordering function
 template <typename T>
-T* reorderForsyth(const vector<T>& indices,
+T* reorderForsyth(const std::vector<T>& indices,
                   const int nVertices)
 {
 	if (indices.empty() || nVertices == 0)

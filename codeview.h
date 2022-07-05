@@ -1,12 +1,20 @@
 #pragma once
 
+#ifndef __APPLE__
 #include <Commdlg.h>
+#endif
 #include <activscp.h>
 #include <activdbg.h>
+
+#ifndef __APPLE__
 #include <atlcom.h>
+#endif
 #include "codeviewedit.h"
+#ifndef __APPLE__
 #include "ScriptErrorDialog.h"
-#include "inc\scintilla.h"
+#include "inc/scintilla.h"
+#include "inc/scilexer.h"
+#endif
 
 #define MAX_FIND_LENGTH 81
 #define MAX_LINE_LENGTH 2048
@@ -48,6 +56,7 @@ class DebuggerModule :
 
    STDMETHOD(Print)(VARIANT *pvar);
 
+public:
    void Init(CodeViewer * const pcv);
 
    virtual IDispatch *GetDispatch() override { return (IDispatch *)this; }
@@ -156,7 +165,11 @@ public:
 
    STDMETHODIMP GetWindow(HWND *phwnd)
    {
+#ifndef __APPLE__
       *phwnd = GetDesktopWindow(); return S_OK; //!! ?
+#else
+      return S_OK;
+#endif
    }
 
    STDMETHODIMP EnableModeless(BOOL)
@@ -258,7 +271,9 @@ public:
 
    void UpdateScinFromPrefs();
 
+#ifndef __APPLE__
    void MarginClick(const Sci_Position position, const int modifiers);
+#endif
 
    void EvaluateScriptStatement(const char * const szScript);
    void AddToDebugOutput(const char * const szText);
@@ -296,7 +311,9 @@ public:
    int m_dwellDisplayTime;
 
    vector<UserData> m_pageConstructsDict;
+#ifndef __APPLE__
    Sci_TextRange m_wordUnderCaret;
+#endif
 
    CComObject<DebuggerModule> *m_pdm; // Object to expose to script for global functions
    //ULONG m_cref;
@@ -413,7 +430,9 @@ private:
    vector<UserData> m_currentMembers;
    string m_autoCompString;
    string m_autoCompMembersString;
+#ifndef __APPLE__
    Sci_TextRange m_currentConstruct;
+#endif
 
    HWND m_hwndItemList;
    HWND m_hwndItemText;

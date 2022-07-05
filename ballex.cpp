@@ -1,5 +1,9 @@
 #include "stdafx.h"
+#ifndef __APPLE__
 #include "vpinball.h"
+#else
+#include "vpinball_osx.h"
+#endif
 
 BallEx::BallEx()
 {
@@ -10,7 +14,7 @@ BallEx::~BallEx()
 {
 }
 
-void BallEx::GetDebugCommands(std::vector<int> & pvids, std::vector<int> & pvcommandid)
+void BallEx::GetDebugCommands(vector<int> & pvids, vector<int> & pvcommandid)
 {
    pvids.push_back(IDS_MAKEACTIVEBALL);
    pvcommandid.push_back(0);

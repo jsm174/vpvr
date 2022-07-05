@@ -2,7 +2,7 @@
 
 #include "stdafx.h"
 
-#include <inc/robin_hood.h>
+#include "inc/robin_hood.h"
 #include "typedefs3D.h"
 
 #include "Material.h"
@@ -53,9 +53,9 @@ struct DisplayConfig
 };
 
 int getNumberOfDisplays();
-void EnumerateDisplayModes(const int display, std::vector<VideoMode>& modes);
+void EnumerateDisplayModes(const int display, vector<VideoMode>& modes);
 bool getDisplaySetupByID(const int display, int &x, int &y, int &width, int &height);
-int getDisplayList(std::vector<DisplayConfig>& displays);
+int getDisplayList(vector<DisplayConfig>& displays);
 int getPrimaryDisplay();
 
 enum TransformStateType {

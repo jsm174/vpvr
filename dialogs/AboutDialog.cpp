@@ -24,7 +24,7 @@ INT_PTR AboutDialog::DialogProc(UINT uMsg, WPARAM wParam, LPARAM lParam)
       {
          const HWND hwndDlg = GetHwnd();
          char versionString[256];
-         sprintf_s(versionString, "Version %i.%i.%i Beta (Revision %i (%s), %ubit)", VP_VERSION_MAJOR,VP_VERSION_MINOR,VP_VERSION_REV, GIT_REVISION, GIT_SHA,
+         sprintf_s(versionString, sizeof(versionString), "Version %i.%i.%i Beta (Revision %i (%s), %ubit)", VP_VERSION_MAJOR,VP_VERSION_MINOR,VP_VERSION_REV, GIT_REVISION, GIT_SHA,
 #ifdef _WIN64
             64u
 #else
@@ -37,8 +37,8 @@ INT_PTR AboutDialog::DialogProc(UINT uMsg, WPARAM wParam, LPARAM lParam)
             std::ifstream file(g_pvp->m_szMyPath + "Changelog.txt");
             if (!file.is_open())
                file = std::ifstream(g_pvp->m_szMyPath + "Doc\\Changelog.txt");
-            std::string line;
-            std::string text;
+            string line;
+            string text;
             while (std::getline(file, line))
             {
                line += "\r\n";

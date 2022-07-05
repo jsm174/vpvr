@@ -1,20 +1,11 @@
 #pragma once
 
-#include "inc\gpuprofiler.h"
+#include "inc/gpuprofiler.h"
 #include "RenderDevice.h"
 #include "Texture.h"
 #include "backGlass.h"
 
 extern int NumVideoBytes;
-
-enum TextureFilter
-{
-   TEXTURE_MODE_NONE,			// No mipmapping
-   TEXTURE_MODE_POINT,			// Point sampled (aka nearest mipmap) texture filtering.
-   TEXTURE_MODE_BILINEAR,		// Bilinar texture filtering. 
-   TEXTURE_MODE_TRILINEAR,		// Trilinar texture filtering. 
-   TEXTURE_MODE_ANISOTROPIC		// Anisotropic texture filtering. 
-};
 
 class BackGlass;
 
@@ -26,12 +17,12 @@ public:
    void RotateView(float x, float y, float z);
    void TranslateView(const float x, const float y, const float z);
 
-   void FitCameraToVerticesFS(const std::vector<Vertex3Ds>& pvvertex3D, float aspect, float rotation, float inclination, float FOV, float xlatez, float layback);
-   void FitCameraToVertices(const std::vector<Vertex3Ds>& pvvertex3D, float aspect, float rotation, float inclination, float FOV, float xlatez, float layback);
+   void FitCameraToVerticesFS(const vector<Vertex3Ds>& pvvertex3D, float aspect, float rotation, float inclination, float FOV, float xlatez, float layback);
+   void FitCameraToVertices(const vector<Vertex3Ds>& pvvertex3D, float aspect, float rotation, float inclination, float FOV, float xlatez, float layback);
    void CacheTransform();      // compute m_matrixTotal = m_World * m_View * m_Proj
    void TransformVertices(const Vertex3Ds * const rgv, const WORD * const rgi, const int count, Vertex2D * const rgvout) const;
 
-   void ComputeNearFarPlane(const std::vector<Vertex3Ds>& verts);
+   void ComputeNearFarPlane(const vector<Vertex3Ds>& verts);
 
    Matrix3D m_matWorld;
    Matrix3D m_matView;

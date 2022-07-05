@@ -1,11 +1,14 @@
 #include "stdafx.h"
 
-#include <rapidxml_utils.hpp>
+#include "inc/rapidxml_utils.hpp"
 
 #include "backGlass.h"
 #include "RenderDevice.h"
 #include "Shader.h"
+
+#ifndef __APPLE__
 #include "captureExt.h"
+#endif
 
 //#define WRITE_BACKGLASS_IMAGES
 #ifdef WRITE_BACKGLASS_IMAGES
@@ -68,7 +71,7 @@ static int decode_base64(const char* const inData, char* const outData, const si
       if (outPos + 2 < outSize) outData[outPos + 2] = (b3 << 6) | (b4);
       outPos += 3;
    }
-   return min(outPos - padding, outSize);
+   return min((int)(outPos - padding), (int)outSize);
 }
 
 //Actual Backglass code
@@ -78,7 +81,7 @@ BackGlass::BackGlass(RenderDevice* const pd3dDevice, Texture * backgroundFallbac
 {
 #ifdef ENABLE_VR
    //Check for a directb2s and try to use its backglass data
-   std::string b2sFileName = g_pplayer->m_ptable->m_szFileName;
+   string b2sFileName = g_pplayer->m_ptable->m_szFileName;
    b2sFileName = b2sFileName.substr(0, b2sFileName.find_last_of('.'));
    b2sFileName.append(".directb2s");
    m_backglass_dmd = int2(0,0);
@@ -133,7 +136,7 @@ BackGlass::BackGlass(RenderDevice* const pd3dDevice, Texture * backgroundFallbac
                   int size = decode_base64(attrib->value(), data, attrib->value_size(), data_len);
 #ifdef WRITE_BACKGLASS_IMAGES
                   if (WRITE_BACKGLASS_IMAGES > 0 && size > 0) {//Write Image to disk. Also check if the base64 decoder is working...
-                     std::string imageFileName = b2sFileName;
+                     string imageFileName = b2sFileName;
                      imageFileName.append(illuminationNode->name()).append(".bulb").append(std::to_string(bulb)).append(".png");//if it is not a png just rename it...
                      std::ofstream imageFile(imageFileName, std::ios::out | std::ios::binary | std::ios::trunc);
                      if (imageFile.is_open()) {
@@ -168,7 +171,7 @@ BackGlass::BackGlass(RenderDevice* const pd3dDevice, Texture * backgroundFallbac
                   }
 #ifdef WRITE_BACKGLASS_IMAGES
                   if (WRITE_BACKGLASS_IMAGES > 0 && size > 0) {//Write Image to disk. Also useful to check if the base64 decoder is working...
-                     std::string imageFileName = b2sFileName;
+                     string imageFileName = b2sFileName;
                      imageFileName.append(imagesNode->name()).append(".png");//if it is not a png just rename it...
                      std::ofstream imageFile(imageFileName, std::ios::out | std::ios::binary | std::ios::trunc);
                      if (imageFile.is_open()) {
@@ -210,6 +213,7 @@ BackGlass::~BackGlass()
 
 void BackGlass::Render()
 {
+#ifndef __APPLE__
    if (g_pplayer->m_capPUP && capturePUP())
    {
       m_backgroundTexture = m_pd3dDevice->m_texMan.LoadTexture(g_pplayer->m_texPUP, TextureFilter::TEXTURE_MODE_TRILINEAR, true, true, false);
@@ -269,10 +273,12 @@ void BackGlass::Render()
    //m_pd3dDevice->SetRenderStateCulling(RenderDevice::CULL_CCW); // not necessary anymore
    m_pd3dDevice->SetRenderState(RenderDevice::ZENABLE, RenderDevice::RS_TRUE);
    m_pd3dDevice->SetRenderState(RenderDevice::ZWRITEENABLE, RenderDevice::RS_TRUE);
+#endif
 }
 
 void BackGlass::DMDdraw(float DMDposx, float DMDposy, float DMDwidth, float DMDheight, const COLORREF DMDcolor, const float intensity)
 {
+#ifndef __APPLE__
    if (g_pplayer->m_texdmd || captureExternalDMD()) // If DMD capture is enabled check if external DMD exists (for capturing UltraDMD+P-ROC DMD)
    {
       //const float width = g_pplayer->m_pin3d.m_useAA ? 2.0f*(float)m_width : (float)m_width;
@@ -343,4 +349,5 @@ void BackGlass::DMDdraw(float DMDposx, float DMDposy, float DMDwidth, float DMDh
          m_pd3dDevice->SetRenderState(RenderDevice::ZENABLE, RenderDevice::RS_TRUE);
       }
    }
+#endif
 }

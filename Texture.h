@@ -2,7 +2,20 @@
 
 #define MIN_TEXTURE_SIZE 8u
 
+#ifdef __APPLE__
+#define _rotl(x,y)  (((x) << (y)) | ((x) >> (-(y) & 31)))
+#endif
+
 struct FIBITMAP;
+
+enum TextureFilter
+{
+   TEXTURE_MODE_NONE,			// No mipmapping
+   TEXTURE_MODE_POINT,			// Point sampled (aka nearest mipmap) texture filtering.
+   TEXTURE_MODE_BILINEAR,		// Bilinar texture filtering. 
+   TEXTURE_MODE_TRILINEAR,		// Trilinar texture filtering. 
+   TEXTURE_MODE_ANISOTROPIC		// Anisotropic texture filtering. 
+};
 
 // texture stored in main memory in 24/32bit RGB/RGBA uchar format or 48/96bit RGB float
 class BaseTexture
@@ -63,6 +76,10 @@ public:
 
    BaseTexture *CreateFromHBitmap(const HBITMAP hbm, bool with_alpha = true);
    void CreateFromResource(const int id);
+
+#ifdef __APPLE__
+   void CreateFromResource(const string szName);
+#endif
 
    bool IsHDR() const
    {

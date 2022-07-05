@@ -6,7 +6,7 @@
 #define AFX_RUBBER_H__B0715DC0_002F_11E4_9191_0800200C9A66__INCLUDED_
 
 #include "resource.h"       // main symbols
-#include <inc/robin_hood.h>
+#include "inc/robin_hood.h"
 
 class RubberData : public BaseProperty
 {
@@ -91,7 +91,7 @@ public:
    virtual Vertex2D GetCenter() const { return GetPointCenter(); }
    virtual void PutCenter(const Vertex2D& pv) { PutPointCenter(pv); }
 
-   virtual void GetBoundingVertices(std::vector<Vertex3Ds>& pvvertex3D);
+   virtual void GetBoundingVertices(vector<Vertex3Ds>& pvvertex3D);
 
    virtual float GetDepth(const Vertex3Ds& viewDir) const;
    virtual unsigned long long GetMaterialID() const { return m_ptable->GetMaterial(m_d.m_szMaterial)->hash(); }
@@ -120,9 +120,9 @@ private:
    int m_numVertices;      // this goes along with dynamicVertexBuffer
    int m_numIndices;
 
-   std::vector<HitObject*> m_vhoCollidable; // Objects to that may be collide selectable
-   std::vector<Vertex3D_NoTex2> m_vertices;
-   std::vector<WORD> m_ringIndices;
+   vector<HitObject*> m_vhoCollidable; // Objects to that may be collide selectable
+   vector<Vertex3D_NoTex2> m_vertices;
+   vector<WORD> m_ringIndices;
 
    Vertex3Ds m_middlePoint;
 
@@ -133,7 +133,7 @@ private:
    PropertyPane *m_propVisual;
    PropertyPane *m_propPhysics;
 
-   void GetCentralCurve(std::vector<RenderVertex> &vv, const float _accuracy = -1.f) const;
+   void GetCentralCurve(vector<RenderVertex> &vv, const float _accuracy = -1.f) const;
 
    Vertex2D *GetSplineVertex(int &pcvertex, bool ** const ppfCross, Vertex2D ** const pMiddlePoints, const float _accuracy = -1.f);
 

@@ -1,4 +1,4 @@
-#include "StdAfx.h"
+#include "stdafx.h"
 //#include "forsyth.h"
 #include "objloader.h"
 #include "Shader.h"
@@ -247,7 +247,7 @@ void Surface::UIRenderPass1(Sur * const psur)
    // Don't want border color to be over-ridden when selected - that will be drawn later
    psur->SetBorderColor(-1, false, 0);
 
-   std::vector<RenderVertex> vvertex;
+   vector<RenderVertex> vvertex;
    GetRgVertex(vvertex);
 
    Texture *ppi;
@@ -273,7 +273,7 @@ void Surface::UIRenderPass2(Sur * const psur)
    psur->SetObject(nullptr);
 
    {
-      std::vector<RenderVertex> vvertex; //!! check/reuse from prerender
+      vector<RenderVertex> vvertex; //!! check/reuse from prerender
       GetRgVertex(vvertex);
       psur->Polygon(vvertex);
    }
@@ -331,7 +331,7 @@ void Surface::RenderBlueprint(Sur *psur, const bool solid)
    psur->SetObject(this); // For selected formatting
    psur->SetObject(nullptr);
 
-   std::vector<RenderVertex> vvertex;
+   vector<RenderVertex> vvertex;
    GetRgVertex(vvertex);
 
    psur->Polygon(vvertex);
@@ -371,7 +371,7 @@ void Surface::GetHitShapesDebug(vector<HitObject*> &pvho)
 
 void Surface::CurvesToShapes(vector<HitObject*> &pvho)
 {
-   std::vector<RenderVertex> vvertex;
+   vector<RenderVertex> vvertex;
    GetRgVertex(vvertex);
 
    const int count = (int)vvertex.size();
@@ -504,7 +504,7 @@ void Surface::AddLine(vector<HitObject*> &pvho, const RenderVertex &pv1, const R
 // end of license:GPLv3+, back to 'old MAME'-like
 //
 
-void Surface::GetBoundingVertices(std::vector<Vertex3Ds>& pvvertex3D)
+void Surface::GetBoundingVertices(vector<Vertex3Ds>& pvvertex3D)
 {
    // hardwired to table dimensions, but with bottom/top of surface, returns all 8 corners as this will be used for further transformations later-on
 	for (int i = 0; i < 8; i++)
@@ -573,9 +573,9 @@ void Surface::RenderDynamic()
 // Ported at: VisualPinball.Engine/VPT/Surface/SurfaceMeshGenerator.cs
 //
 
-void Surface::GenerateMesh(std::vector<Vertex3D_NoTex2> &topBuf, std::vector<Vertex3D_NoTex2> &sideBuf, std::vector<WORD> &topBottomIndices, std::vector<WORD> &sideIndices)
+void Surface::GenerateMesh(vector<Vertex3D_NoTex2> &topBuf, vector<Vertex3D_NoTex2> &sideBuf, vector<WORD> &topBottomIndices, vector<WORD> &sideIndices)
 {
-   std::vector<RenderVertex> vvertex;
+   vector<RenderVertex> vvertex;
    GetRgVertex(vvertex);
    float *rgtexcoord = nullptr;
 
@@ -711,7 +711,7 @@ void Surface::GenerateMesh(std::vector<Vertex3D_NoTex2> &topBuf, std::vector<Ver
       topBottomIndices.clear();
 
       {
-      std::vector<unsigned int> vpoly(m_numVertices);
+      vector<unsigned int> vpoly(m_numVertices);
       for (unsigned int i = 0; i < m_numVertices; i++)
          vpoly[i] = i;
 
@@ -780,10 +780,10 @@ void Surface::ExportMesh(ObjLoader& loader)
    m_d.m_heightbottom *= m_ptable->m_BG_scalez[m_ptable->m_BG_current_set];
    m_d.m_heighttop *= m_ptable->m_BG_scalez[m_ptable->m_BG_current_set];
 
-   std::vector<Vertex3D_NoTex2> topBuf;
-   std::vector<Vertex3D_NoTex2> sideBuf;
-   std::vector<WORD> topBottomIndices;
-   std::vector<WORD> sideIndices;
+   vector<Vertex3D_NoTex2> topBuf;
+   vector<Vertex3D_NoTex2> sideBuf;
+   vector<WORD> topBottomIndices;
+   vector<WORD> sideIndices;
    GenerateMesh(topBuf, sideBuf, topBottomIndices, sideIndices);
 
    m_d.m_heightbottom = oldBottomHeight;
@@ -847,10 +847,10 @@ void Surface::PrepareWallsAtHeight()
    SAFE_BUFFER_RELEASE(m_IBuffer);
    SAFE_BUFFER_RELEASE(m_VBuffer);
 
-   std::vector<Vertex3D_NoTex2> topBottomBuf;
-   std::vector<Vertex3D_NoTex2> sideBuf;
-   std::vector<WORD> topBottomIndices;
-   std::vector<WORD> sideIndices;
+   vector<Vertex3D_NoTex2> topBottomBuf;
+   vector<Vertex3D_NoTex2> sideBuf;
+   vector<WORD> topBottomIndices;
+   vector<WORD> sideIndices;
    GenerateMesh(topBottomBuf, sideBuf, topBottomIndices, sideIndices);
 
    VertexBuffer::CreateVertexBuffer(m_numVertices * 4 + (!topBottomBuf.empty() ? m_numVertices * 3 : 0), 0, MY_D3DFVF_NOTEX2_VERTEX, &m_VBuffer, PRIMARY_DEVICE);
@@ -1139,7 +1139,7 @@ void Surface::AddPoint(int x, int y, const bool smooth)
 
    const Vertex2D v = m_ptable->TransformPoint(x, y);
 
-   std::vector<RenderVertex> vvertex;
+   vector<RenderVertex> vvertex;
    GetRgVertex(vvertex);
 
    Vertex2D vOut;
@@ -1426,7 +1426,7 @@ HRESULT Surface::InitPostLoad()
 void Surface::UpdateStatusBarInfo()
 {
    char tbuf[128];
-   sprintf_s(tbuf, "TopHeight: %.03f | BottomHeight: %0.3f", m_vpinball->ConvertToUnit(m_d.m_heighttop), m_vpinball->ConvertToUnit(m_d.m_heightbottom));
+   sprintf_s(tbuf, sizeof(tbuf), "TopHeight: %.03f | BottomHeight: %0.3f", m_vpinball->ConvertToUnit(m_d.m_heighttop), m_vpinball->ConvertToUnit(m_d.m_heightbottom));
    m_vpinball->SetStatusBarUnitInfo(tbuf, true);
 }
 

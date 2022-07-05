@@ -130,9 +130,9 @@ private:
    int m_numIndices;
    Vertex3D_NoTex2* m_vertBuffer;
    Vertex3D_NoTex2* m_vertBuffer2;
-   std::vector<WORD> m_meshIndices;
+   vector<WORD> m_meshIndices;
 
-   std::vector<HitObject*> m_vhoCollidable; // Objects to that may be collide selectable
+   vector<HitObject*> m_vhoCollidable; // Objects to that may be collide selectable
 
    VertexBuffer *m_dynamicVertexBuffer;
    IndexBuffer *m_dynamicIndexBuffer;
@@ -143,7 +143,7 @@ private:
 
    // Get an approximation of the curve described by the control points of this ramp.
    template <typename T>
-   void GetCentralCurve(std::vector<T> &vv, const float _accuracy = -1.f) const
+   void GetCentralCurve(vector<T> &vv, const float _accuracy = -1.f) const
    {
       float accuracy;
 
@@ -169,7 +169,7 @@ private:
 
    void AssignHeightToControlPoint(const RenderVertex3D &v, const float height);
 
-   void AddJoint(vector<HitObject *> &pvho, const Vertex3Ds &v1, const Vertex3Ds &v2);
+   void AddJoint(vector<HitObject*> &pvho, const Vertex3Ds& v1, const Vertex3Ds& v2);
    void AddJoint2D(vector<HitObject*> &pvho, const Vertex2D& p, const float zlow, const float zhigh);
    void CheckJoint(vector<HitObject*> &pvho, const HitTriangle * const ph3d1, const HitTriangle * const ph3d2);
 

@@ -1,4 +1,4 @@
-#include "StdAfx.h"
+#include "stdafx.h"
 //#include "forsyth.h"
 #include "objloader.h"
 #include "Shader.h"
@@ -36,9 +36,9 @@ Ramp::~Ramp()
 void Ramp::UpdateStatusBarInfo()
 {
    char tbuf[128];
-   sprintf_s(tbuf, "TopH: %.03f | BottomH: %0.3f | TopW: %.03f | BottomW: %.03f | LeftW: %.03f | RightW: %.03f", m_vpinball->ConvertToUnit(m_d.m_heighttop), m_vpinball->ConvertToUnit(m_d.m_heightbottom),
-       m_vpinball->ConvertToUnit(m_d.m_widthtop), m_vpinball->ConvertToUnit(m_d.m_widthbottom),
-       m_vpinball->ConvertToUnit(m_d.m_leftwallheightvisible), m_vpinball->ConvertToUnit(m_d.m_rightwallheightvisible));
+   sprintf_s(tbuf, sizeof(tbuf), "TopH: %.03f | BottomH: %0.3f | TopW: %.03f | BottomW: %.03f | LeftW: %.03f | RightW: %.03f", m_vpinball->ConvertToUnit(m_d.m_heighttop), m_vpinball->ConvertToUnit(m_d.m_heightbottom),
+   m_vpinball->ConvertToUnit(m_d.m_widthtop), m_vpinball->ConvertToUnit(m_d.m_widthbottom),
+   m_vpinball->ConvertToUnit(m_d.m_leftwallheightvisible), m_vpinball->ConvertToUnit(m_d.m_rightwallheightvisible));
    m_vpinball->SetStatusBarUnitInfo(tbuf, true);
 }
 
@@ -271,7 +271,7 @@ void Ramp::RenderBlueprint(Sur *psur, const bool solid)
 }
 
 
-void Ramp::GetBoundingVertices(std::vector<Vertex3Ds>& pvvertex3D)
+void Ramp::GetBoundingVertices(vector<Vertex3Ds>& pvvertex3D)
 {
    //!! meh, this is delivering something loosely related to the bounding vertices, but its only used in the cam fitting code so far, so keep for legacy reasons
    float *rgheight1;
@@ -346,7 +346,7 @@ void Ramp::AssignHeightToControlPoint(const RenderVertex3D &v, const float heigh
  */
 Vertex2D *Ramp::GetRampVertex(int &pcvertex, float ** const ppheight, bool ** const ppfCross, float ** const ppratio, Vertex2D ** const pMiddlePoints, const float _accuracy, const bool inc_width)
 {
-   std::vector<RenderVertex3D> vvertex;
+   vector<RenderVertex3D> vvertex;
    GetCentralCurve(vvertex, _accuracy);
    // vvertex are the 2D vertices forming the central curve of the ramp as seen from above
 
@@ -509,7 +509,7 @@ Vertex2D *Ramp::GetRampVertex(int &pcvertex, float ** const ppheight, bool ** co
 
 float Ramp::GetSurfaceHeight(float x, float y) const
 {
-   std::vector<RenderVertex3D> vvertex;
+   vector<RenderVertex3D> vvertex;
    GetCentralCurve(vvertex);
 
    int iSeg;
@@ -1403,7 +1403,7 @@ void Ramp::AddPoint(int x, int y, const bool smooth)
    STARTUNDO
    const Vertex2D v = m_ptable->TransformPoint(x, y);
 
-   std::vector<RenderVertex3D> vvertex;
+   vector<RenderVertex3D> vvertex;
    GetCentralCurve(vvertex);
 
    int iSeg;
