@@ -46,11 +46,19 @@ public:
 
    vector<Vertex3D_NoTex2>& GetVertices()
    {
+#ifndef __APPLE__ /* FIXME */
       return std::move(m_verts);
+#else
+      return m_verts;
+#endif
    }
    vector<unsigned int>& GetIndices()
    {
+#ifndef __APPLE__ /* FIXME */
       return std::move(m_indices);
+#else
+      return m_indices;
+#endif
    }
 private:
 

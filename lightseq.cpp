@@ -305,7 +305,7 @@ void LightSeq::RenderSetup()
          {
              Flasher* const pFlasher = (Flasher*)m_pcollection->m_visel.ElementAt(i);
              pFlasher->get_X(&x);
-             pFlasher->get_Y(&y);             
+             pFlasher->get_Y(&y);
          }
          else if (type == eItemPrimitive)
          {
@@ -1695,13 +1695,13 @@ void LightSeq::SetElementToState(const int index, const LightState State)
    {
        Flasher* const pFlasher = (Flasher*)m_pcollection->m_visel.ElementAt(index);             
        pFlasher->m_lockedByLS = true;
-       pFlasher->setInPlayState(State > Off ? true : false);     
+       pFlasher->setInPlayState(State > LightStateOff ? true : false);     
    }
    else if (type == eItemPrimitive) 
    {
        Primitive* const pPrimitive = (Primitive*)m_pcollection->m_visel.ElementAt(index);
        pPrimitive->m_lockedByLS = true;
-       pPrimitive->setInPlayState(State > Off ? true : false);
+       pPrimitive->setInPlayState(State > LightStateOff ? true : false);
    }
 }
 

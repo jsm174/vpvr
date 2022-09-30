@@ -1,6 +1,12 @@
 #include "stdafx.h"
 
+#ifndef __APPLE__
 #include <DxErr.h>
+#endif
+
+#ifdef __APPLE__
+#include <map>
+#endif
 
 // Undefine this if you want to debug VR mode without a VR headset
 //#define VR_PREVIEW_TEST
@@ -13,7 +19,7 @@
 
 #include "typedefs3D.h"
 #ifdef ENABLE_SDL
-#include "sdl2/SDL_syswm.h"
+#include <SDL_syswm.h>
 #endif
 #include "RenderDevice.h"
 #include "TextureManager.h"
@@ -75,6 +81,7 @@ static pRGV mRtlGetVersion = nullptr;
 
 bool IsWindows10_1803orAbove()
 {
+#ifndef __APPLE__
    if (mRtlGetVersion == nullptr)
       mRtlGetVersion = (pRGV)GetProcAddress(GetModuleHandle(TEXT("ntdll")), "RtlGetVersion"); // apparently the only really reliable solution to get the OS version (as of Win10 1803)
 
@@ -93,6 +100,9 @@ bool IsWindows10_1803orAbove()
    }
 
    return false;
+#else
+   return true;
+#endif
 }
 
 #ifdef ENABLE_SDL
@@ -258,9 +268,9 @@ static const char* glErrorToString(const int error) {
 
 void ReportFatalError(const HRESULT hr, const char *file, const int line)
 {
-   char msg[2048+128];
+   char msg[2176];
 #ifdef ENABLE_SDL
-   sprintf_s(msg, sizeof(msg), "GL Fatal Error 0x%0002X %s in %s:%d", hr, glErrorToString(hr), file, line);
+   sprintf_s(msg, sizeof(msg), "GL Fatal Error 0x%0002X %s in %s:%d", (unsigned int)hr, glErrorToString(hr), file, line);
    ShowError(msg);
 #else
    sprintf_s(msg, sizeof(msg), "Fatal error %s (0x%x: %s) at %s:%d", DXGetErrorString(hr), hr, DXGetErrorDescription(hr), file, line);
@@ -273,7 +283,7 @@ void ReportError(const char *errorText, const HRESULT hr, const char *file, cons
 {
    char msg[16384];
 #ifdef ENABLE_SDL
-   sprintf_s(msg, sizeof(msg), "GL Error 0x%0002X %s in %s:%d\n%s", hr, glErrorToString(hr), file, line, errorText);
+   sprintf_s(msg, sizeof(msg), "GL Error 0x%0002X %s in %s:%d\n%s", (unsigned int)hr, glErrorToString(hr), file, line, errorText);
    ShowError(msg);
 #else
    sprintf_s(msg, sizeof(msg), "%s %s (0x%x: %s) at %s:%d", errorText, DXGetErrorString(hr), hr, DXGetErrorDescription(hr), file, line);
@@ -502,37 +512,14 @@ void EnumerateDisplayModes(const int display, vector<VideoMode>& modes)
 #endif
 }
 
-//int getDisplayList(vector<DisplayConfig>& displays)
-//{
-//   int maxAdapter = SDL_GetNumVideoDrivers();
-//   int display = 0;
-//   for (display = 0; display < getNumberOfDisplays(); ++display)
-//   {
-//      SDL_Rect displayBounds;
-//      if (SDL_GetDisplayBounds(display, &displayBounds) == 0) {
-//         DisplayConfig displayConf;
-//         displayConf.display = display;
-//         displayConf.adapter = 0;
-//         displayConf.isPrimary = (displayBounds.x == 0) && (displayBounds.y == 0);
-//         displayConf.top = displayBounds.x;
-//         displayConf.left = displayBounds.x;
-//         displayConf.width = displayBounds.w;
-//         displayConf.height = displayBounds.h;
-//
-//         strncpy_s(displayConf.DeviceName, SDL_GetDisplayName(displayConf.display), 32);
-//         strncpy_s(displayConf.GPU_Name, SDL_GetVideoDriver(displayConf.adapter), MAX_DEVICE_IDENTIFIER_STRING-1);
-//
-//         displays.push_back(displayConf);
-//      }
-//   }
-//   return display;
-//}
-
+#ifndef __APPLE__
 BOOL CALLBACK MonitorEnumList(__in  HMONITOR hMonitor, __in  HDC hdcMonitor, __in  LPRECT lprcMonitor, __in  LPARAM dwData)
 {
+
    std::map<string,DisplayConfig>* data = reinterpret_cast<std::map<string,DisplayConfig>*>(dwData);
    MONITORINFOEX info;
    info.cbSize = sizeof(MONITORINFOEX);
+
    GetMonitorInfo(hMonitor, &info);
    DisplayConfig config = {};
    config.top = info.rcMonitor.top;
@@ -550,10 +537,14 @@ BOOL CALLBACK MonitorEnumList(__in  HMONITOR hMonitor, __in  HDC hdcMonitor, __i
    data->insert(std::pair<string, DisplayConfig>(config.DeviceName, config));
    return TRUE;
 }
+#endif
 
 int getDisplayList(vector<DisplayConfig>& displays)
 {
    displays.clear();
+   int i;
+
+#ifndef __APPLE__
    std::map<string, DisplayConfig> displayMap;
    // Get the resolution of all enabled displays.
    EnumDisplayMonitors(nullptr, nullptr, MonitorEnumList, reinterpret_cast<LPARAM>(&displayMap));
@@ -567,7 +558,7 @@ int getDisplayList(vector<DisplayConfig>& displays)
    }
    // Map the displays to the DX9 adapter. Otherwise this leads to an performance impact on systems with multiple GPUs
    const int adapterCount = pD3D->GetAdapterCount();
-   for (int i = 0;i < adapterCount;++i) {
+   for (i = 0;i < adapterCount;++i) {
       D3DADAPTER_IDENTIFIER9 adapter;
       pD3D->GetAdapterIdentifier(i, 0, &adapter);
       std::map<string, DisplayConfig>::iterator display = displayMap.find(adapter.DeviceName);
@@ -580,7 +571,7 @@ int getDisplayList(vector<DisplayConfig>& displays)
 #endif
 
    // Apply the same numbering as windows
-   int i = 0;
+   i = 0;
    for (std::map<string, DisplayConfig>::iterator display = displayMap.begin(); display != displayMap.end(); ++display)
    {
       if (display->second.adapter >= 0) {
@@ -596,6 +587,27 @@ int getDisplayList(vector<DisplayConfig>& displays)
       }
       i++;
    }
+#else
+   int maxAdapter = SDL_GetNumVideoDrivers();
+   for (i = 0; i < getNumberOfDisplays(); ++i) {
+      SDL_Rect displayBounds;
+      if (SDL_GetDisplayBounds(i, &displayBounds) == 0) {
+         DisplayConfig displayConf;
+         displayConf.display = i;
+         displayConf.adapter = 0;
+         displayConf.isPrimary = (displayBounds.x == 0) && (displayBounds.y == 0);
+         displayConf.top = displayBounds.x;
+         displayConf.left = displayBounds.x;
+         displayConf.width = displayBounds.w;
+         displayConf.height = displayBounds.h;
+
+         strncpy_s(displayConf.DeviceName, SDL_GetDisplayName(displayConf.display), 32);
+         strncpy_s(displayConf.GPU_Name, SDL_GetVideoDriver(displayConf.adapter), MAX_DEVICE_IDENTIFIER_STRING-1);
+
+         displays.push_back(displayConf);
+      }
+   }
+#endif
    return i;
 }
 
@@ -928,7 +940,9 @@ void RenderDevice::CreateDevice(int &refreshrate, UINT adapterIndex)
    SDL_SysWMinfo wmInfo;
    SDL_VERSION(&wmInfo.version);
    SDL_GetWindowWMInfo(m_sdl_playfieldHwnd, &wmInfo);
+#ifndef __APPLE__
    m_windowHwnd = wmInfo.info.win.window;
+#endif
 
    m_sdl_context = SDL_GL_CreateContext(m_sdl_playfieldHwnd);
 
@@ -973,6 +987,7 @@ void RenderDevice::CreateDevice(int &refreshrate, UINT adapterIndex)
    m_height = fbHeight;
    */
 
+#ifdef ENABLE_VR
    if (m_stereo3D == STEREO_VR)
    {
 #ifdef ENABLE_VR
@@ -995,6 +1010,7 @@ void RenderDevice::CreateDevice(int &refreshrate, UINT adapterIndex)
       // For anaglyph stereo mode, we need to double the width since the 2 eye images are mixed by colors, each being at the resolution of the output.
       m_width = m_width * 2;
    }
+#endif
 
    if (m_stereo3D == STEREO_VR || m_vsync > refreshrate)
       m_vsync = 0;
@@ -1384,8 +1400,12 @@ bool RenderDevice::LoadShaders()
       Shader::Defines = "#define eyes 2\n#define enable_VR 0";
    }
    Shader::shaderPath = string(glShaderPath);
+#ifndef __APPLE__
    Shader::shaderPath = Shader::shaderPath.substr(0, Shader::shaderPath.find_last_of("\\/"));
    Shader::shaderPath.append("\\glshader\\");
+#else
+   Shader::shaderPath.append("./glshader/");
+#endif
    shaderCompilationOkay = basicShader->Load("BasicShader.glfx", 0) && shaderCompilationOkay;
    shaderCompilationOkay = DMDShader->Load(m_stereo3D == STEREO_VR ? "DMDShaderVR.glfx" : "DMDShader.glfx", 0) && shaderCompilationOkay;
    shaderCompilationOkay = FBShader->Load("FBShader.glfx", 0) && shaderCompilationOkay;

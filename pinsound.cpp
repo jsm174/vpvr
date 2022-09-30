@@ -103,8 +103,10 @@ void PinSound::UnInitialize()
       if (m_BASSstream)
       {
          SetDevice();
+#ifndef __APPLE__
          BASS_StreamFree(m_BASSstream);
          m_BASSstream = 0;
+#endif
       }
    }
 }
@@ -123,6 +125,7 @@ HRESULT PinSound::ReInitialize()
 
    if(!IsWav())
    {
+#ifndef __APPLE__
 	   const SoundConfigTypes SoundMode3D = (m_outputTarget == SNDOUT_BACKGLASS) ? SNDCFG_SND3D2CH : (SoundConfigTypes)LoadValueIntWithDefault(regKey[RegName::Player], "Sound3D"s, (int)SNDCFG_SND3D2CH);
 
 	   SetDevice();
@@ -142,6 +145,7 @@ HRESULT PinSound::ReInitialize()
 		   g_pvp->MessageBox(("BASS music/sound library cannot create stream \"" + m_szPath + "\" (error " + std::to_string(code) + ": " + bla2 + ')').c_str(), "Error", MB_ICONERROR);
 		   return E_FAIL;
 	   }
+#endif
 
 	   return S_OK;
    }
@@ -158,6 +162,7 @@ HRESULT PinSound::ReInitialize()
 
    const SoundConfigTypes SoundMode3D = (m_outputTarget == SNDOUT_BACKGLASS) ? SNDCFG_SND3D2CH : (SoundConfigTypes)LoadValueIntWithDefault(regKey[RegName::Player], "Sound3D"s, (int)SNDCFG_SND3D2CH);
 
+#ifndef __APPLE__
    WAVEFORMATEX wfx = m_wfx;  // Use a copy as we might be modifying it
    // Remark from MSDN: "If wFormatTag = WAVE_FORMAT_PCM or wFormatTag = WAVE_FORMAT_IEEE_FLOAT, set cbSize to zero"
    // Otherwise some tables crash in dsound when using certain WAVE_FORMAT_IEEE_FLOAT samples
@@ -241,18 +246,22 @@ HRESULT PinSound::ReInitialize()
 
    if (SoundMode3D != SNDCFG_SND3D2CH)
       Get3DBuffer();
+#endif
 
    return S_OK;
 }
 
 void PinSound::SetDevice()
 {
+#ifndef __APPLE__
    const int bass_idx = (m_outputTarget == SNDOUT_BACKGLASS) ? bass_BG_idx : bass_STD_idx;
    if (bass_idx != -1 && bass_STD_idx != bass_BG_idx) BASS_SetDevice(bass_idx);
+#endif
 }
 
 void PinSound::Play(const float volume, const float randompitch, const int pitch, const float pan, const float front_rear_fade, const int flags, const bool restart)
 {
+#ifndef __APPLE__
    if (IsWav())
       PlayInternal(volume, randompitch, pitch, pan, front_rear_fade, flags, restart);
    else if (m_BASSstream)
@@ -333,6 +342,7 @@ void PinSound::Play(const float volume, const float randompitch, const int pitch
       else
          BASS_ChannelFlags(m_BASSstream, 0, BASS_SAMPLE_LOOP);
    }
+#endif
 }
 
 void PinSound::Stop()
@@ -343,7 +353,9 @@ void PinSound::Stop()
       if (m_BASSstream)
       {
          SetDevice();
+#ifndef __APPLE__
          BASS_ChannelStop(m_BASSstream);
+#endif
       }
 }
 
@@ -376,6 +388,7 @@ void PinDirectSound::InitDirectSound(const HWND hwnd, const bool IsBackglass)
    SAFE_RELEASE(m_pDSListener);
    SAFE_RELEASE(m_pDS);
 
+#ifndef __APPLE__
    DSAudioDevices DSads;
    int DSidx = 0;
    if (!FAILED(DirectSoundEnumerate(DSEnumCallBack, &DSads)))
@@ -460,6 +473,7 @@ void PinDirectSound::InitDirectSound(const HWND hwnd, const bool IsBackglass)
 	   m_pDSListener->SetPosition(0.0f, 0.0f, 0.0f, DS3D_IMMEDIATE);
    }
    SAFE_RELEASE(pDSBPrimary);
+#endif
 
    //return S_OK;
 }
@@ -471,6 +485,7 @@ PinSound *AudioMusicPlayer::LoadFile(const string& strFileName)
    pps->m_szPath = strFileName;
    pps->m_szName = TitleFromFilename(strFileName);
 
+#ifndef __APPLE__
    if (pps->IsWav()) // only use old direct sound code and wav reader if playing wav's
    {
 	   // Create a new wave file class
@@ -592,6 +607,7 @@ PinSound *AudioMusicPlayer::LoadFile(const string& strFileName)
 		   return nullptr;
 	   }
    }
+#endif
 
    return pps;
 }
@@ -781,6 +797,7 @@ PinDirectSoundWavCopy::PinDirectSoundWavCopy(class PinSound * const pOriginal)
 {
 	m_ppsOriginal = pOriginal;
 
+#ifndef __APPLE__
 	if (this != pOriginal)
 	{
 		m_pDSBuffer = nullptr;
@@ -789,10 +806,12 @@ PinDirectSoundWavCopy::PinDirectSoundWavCopy(class PinSound * const pOriginal)
 		if (m_pDSBuffer && pOriginal->m_pDS3DBuffer != nullptr)
 			Get3DBuffer();
 	}
+#endif
 }
 
 void PinDirectSoundWavCopy::PlayInternal(const float volume, const float randompitch, const int pitch, const float pan, const float front_rear_fade, const int flags, const bool restart)
 {
+#ifndef __APPLE__
 	m_pDSBuffer->SetVolume((LONG)convert2decibelvolume(volume));
 
 	// Frequency tweaks are relative to original sound.  If the copy failed for some reason, don't alter original
@@ -847,10 +866,12 @@ void PinDirectSoundWavCopy::PlayInternal(const float volume, const float randomp
 		m_pDSBuffer->Play(0, 0, flags);
 	else if (restart)
 		m_pDSBuffer->SetCurrentPosition(0);
+#endif
 }
 
 HRESULT PinDirectSoundWavCopy::Get3DBuffer()
 {
+#ifndef __APPLE__
 	const HRESULT hr = m_pDSBuffer->QueryInterface(IID_IDirectSound3DBuffer, (void**)&m_pDS3DBuffer);
 	if (FAILED(hr))
 	{
@@ -861,4 +882,7 @@ HRESULT PinDirectSoundWavCopy::Get3DBuffer()
 	else
 		m_pDS3DBuffer->SetMinDistance(5.0f, DS3D_IMMEDIATE);
 	return hr;
+#else
+	return 0L;
+#endif
 }

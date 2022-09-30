@@ -3,11 +3,13 @@
 #include "typedefs3D.h"
 #include "RenderDevice.h"
 
-#include <Windows.h>
+#ifndef __APPLE__
+#include <windows.h>
+#endif
 
 #include <iostream>
 #include <fstream>
-#include <string>
+#include <sstream>
 #include <inc/robin_hood.h>
 #include <regex>
 
@@ -81,6 +83,9 @@ bool Shader::parseFile(const string& fileNameRoot, const string& fileName, int l
       size_t linenumber = 0;
       while (getline(glfxFile, line))
       {
+#ifdef __APPLE__
+         line = std::regex_replace(line, std::regex("\\s+$"), string(""));
+#endif
          linenumber++;
          if (line.compare(0, 4, "////") == 0) {
             string newMode = line.substr(4, line.length() - 4);
@@ -379,6 +384,27 @@ string Shader::analyzeFunction(const char* shaderCodeName, const string& _techni
    return functionCode;
 }
 
+#ifdef __APPLE__
+string Shader::preprocessGLShader(const string& shaderCode) {
+   std::istringstream iss(shaderCode);
+   string header;
+   string extensions;
+   string code;
+
+   for (std::string line; std::getline(iss, line); )
+   {
+      if (line.compare(0, 9, "#version ") == 0) 
+         header.append("#version 410\n#define __APPLE__").append("\n");
+      else if (line.compare(0, 11, "#extension ") == 0)
+         extensions.append(line).append("\n");
+      else
+         code.append(line).append("\n");
+   }
+
+   return header + extensions + code;
+}
+#endif
+
 bool Shader::Load(const char* shaderCodeName, UINT codeSize)
 {
    m_shaderCodeName = shaderCodeName;
@@ -445,6 +471,9 @@ bool Shader::Load(const char* shaderCodeName, UINT codeSize)
                string vertexShaderCode = vertex;
                vertexShaderCode.append("\n//").append(_technique).append("\n//").append(element[2]).append("\n");
                vertexShaderCode.append(analyzeFunction(shaderCodeName, _technique, element[2], values)).append("\0");
+#ifdef __APPLE__
+               vertexShaderCode = preprocessGLShader(vertexShaderCode);
+#endif
                string geometryShaderCode;
                if (elem == 5 && element[3].length() > 0)
                {
@@ -452,9 +481,15 @@ bool Shader::Load(const char* shaderCodeName, UINT codeSize)
                   geometryShaderCode.append("\n//").append(_technique).append("\n//").append(element[3]).append("\n");
                   geometryShaderCode.append(analyzeFunction(shaderCodeName, _technique, element[3], values)).append("\0");
                }
+#ifdef __APPLE__
+               geometryShaderCode = preprocessGLShader(geometryShaderCode);
+#endif
                string fragmentShaderCode = fragment;
                fragmentShaderCode.append("\n//").append(_technique).append("\n//").append(element[elem - 1]).append("\n");
                fragmentShaderCode.append(analyzeFunction(shaderCodeName, _technique, element[elem - 1], values)).append("\0");
+#ifdef __APPLE__
+               fragmentShaderCode = preprocessGLShader(fragmentShaderCode);
+#endif
                ShaderTechnique* build = compileGLShader(technique, shaderCodeName, element[0] /*.append("_").append(element[1])*/, vertexShaderCode, geometryShaderCode, fragmentShaderCode);
                if (build != nullptr)
                {

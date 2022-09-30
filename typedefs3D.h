@@ -2,9 +2,9 @@
 
 #ifdef ENABLE_SDL
  #include <glad/glad.h>
- #include <sdl2/SDL_opengl.h>
- #include <sdl2/SDL.h>
- #include <sdl2/SDL_ttf.h>
+ #include <SDL_opengl.h>
+ #include <SDL.h>
+ #include <SDL_ttf.h>
 #else
  #include "minid3d9.h"
  #include <d3dx9.h>
@@ -48,6 +48,12 @@ enum StereoMode
 #define MAX_DEVICE_IDENTIFIER_STRING 512
 #define D3DADAPTER_DEFAULT 0
 
+#ifdef __APPLE__
+#if !defined( GL_COMPRESSED_SRGB_ALPHA_BPTC_UNORM )
+#define GL_COMPRESSED_SRGB_ALPHA_BPTC_UNORM 0x8E8D
+#endif
+#endif
+
 enum colorFormat {
    GREY8 = GL_RED,
    RED16F = GL_R16F,
@@ -71,9 +77,15 @@ enum colorFormat {
    RGBA8 = GL_RGBA8,
    RGBA10 = GL_RGB10_A2,
    DXT5 = GL_COMPRESSED_RGBA_S3TC_DXT5_EXT,
+#ifndef __APPLE__
    BC6S = GL_COMPRESSED_RGB_BPTC_SIGNED_FLOAT,
    BC6U = GL_COMPRESSED_RGB_BPTC_UNSIGNED_FLOAT,
    BC7 = GL_COMPRESSED_RGBA_BPTC_UNORM,
+#else
+   BC6S = GL_COMPRESSED_RGB_BPTC_SIGNED_FLOAT_ARB,
+   BC6U = GL_COMPRESSED_RGB_BPTC_UNSIGNED_FLOAT_ARB,
+   BC7 = GL_COMPRESSED_RGBA_BPTC_UNORM_ARB,
+#endif
 
    SRGBA = GL_SRGB8_ALPHA8,
    SRGBA8 = GL_SRGB8_ALPHA8,

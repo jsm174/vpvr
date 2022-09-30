@@ -126,7 +126,7 @@
     <ClCompile Include="inc\gpuprofiler.cpp">
       <Filter>inc</Filter>
     </ClCompile>
-    <ClCompile Include="glad.c" />
+    <ClCompile Include="inc\glad\glad.c" />
     <ClCompile Include="IndexBuffer.cpp" />
     <ClCompile Include="VertexBuffer.cpp" />
     <ClCompile Include="ShaderGL.cpp" />

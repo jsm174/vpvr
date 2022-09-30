@@ -255,8 +255,14 @@ RenderTarget* RenderTarget::Duplicate()
 void RenderTarget::CopyTo(RenderTarget* dest)
 {
 #ifdef ENABLE_SDL
+#ifndef __APPLE__
    glBlitNamedFramebuffer(GetCoreFrameBuffer(), dest->GetCoreFrameBuffer(), 0, 0, GetWidth(), GetHeight(), 0, 0, dest->GetWidth(), dest->GetHeight(),
       m_has_depth && dest->m_has_depth  ? GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT : GL_COLOR_BUFFER_BIT, GL_NEAREST);
+#else
+   glBindFramebuffer(GL_READ_FRAMEBUFFER, GetCoreFrameBuffer());
+   glBindFramebuffer(GL_DRAW_FRAMEBUFFER, dest->GetCoreFrameBuffer());
+   glBlitFramebuffer(0, 0, GetWidth(), GetHeight(), 0, 0, dest->GetWidth(), dest->GetHeight(), m_has_depth ? GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT : GL_COLOR_BUFFER_BIT, GL_NEAREST);
+#endif
 #else
    CHECKD3D(m_rd->GetCoreDevice()->StretchRect(m_color_surface, nullptr, dest->m_color_surface, nullptr, D3DTEXF_NONE));
    if (m_has_depth && dest->m_has_depth)

@@ -41,6 +41,10 @@ class Textbox :
    public IFireEvents,
    public Hitable
 {
+#ifdef __APPLE__
+   STDMETHOD(GetIDsOfNames)(REFIID /*riid*/, LPOLESTR* rgszNames, UINT cNames, LCID lcid,DISPID* rgDispId);
+   STDMETHOD(Invoke)(DISPID dispIdMember, REFIID /*riid*/, LCID lcid, WORD wFlags, DISPPARAMS* pDispParams, VARIANT* pVarResult, EXCEPINFO* pExcepInfo, UINT* puArgErr);
+#endif
 public:
    Textbox();
    virtual ~Textbox();

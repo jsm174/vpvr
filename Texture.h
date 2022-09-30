@@ -2,6 +2,10 @@
 
 #define MIN_TEXTURE_SIZE 8u
 
+#ifdef __APPLE__
+#define _rotl(x,y)  (((x) << (y)) | ((x) >> (-(y) & 31)))
+#endif
+
 struct FIBITMAP;
 
 // texture stored in main memory in 24/32bit RGB/RGBA uchar format or 48/96bit RGB float
@@ -62,6 +66,10 @@ public:
 
    BaseTexture *CreateFromHBitmap(const HBITMAP hbm, bool with_alpha = true);
    void CreateFromResource(const int id);
+
+#ifdef __APPLE__
+   void CreateFromResource(const string szName);
+#endif
 
    bool IsHDR() const
    {

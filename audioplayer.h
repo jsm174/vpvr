@@ -1,6 +1,13 @@
 #pragma once
 
-#include "inc\bass.h"
+#ifndef __APPLE__
+#include "inc/bass.h"
+#else
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wmacro-redefined"
+#include "inc/bass.h"
+#pragma clang diagnostic pop
+#endif
 
 class AudioPlayer final
 {

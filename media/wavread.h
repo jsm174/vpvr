@@ -9,8 +9,10 @@
 
 #pragma once
 
+#ifndef __APPLE__
 #include <mmreg.h>
 #include <mmsystem.h>
+#endif
 
 
 //-----------------------------------------------------------------------------

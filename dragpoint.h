@@ -9,6 +9,10 @@
 
 //class Surface;
 
+#ifdef __APPLE__
+class DragPoint;
+#endif
+
 class IHaveDragPoints
 {
 public:
@@ -56,62 +60,7 @@ public:
 
 protected:
    template <typename T>
-   void GetRgVertex(vector<T> &vv, const bool loop = true, const float accuracy = 4.f) const // 4 = maximum precision that we allow for
-   {
-      static const int Dim = T::Dim;    // for now, this is always 2 or 3
-
-      const int cpoint = (int)m_vdpoint.size();
-      const int endpoint = loop ? cpoint : cpoint - 1;
-
-      T rendv2;
-
-      for (int i = 0; i < endpoint; i++)
-      {
-         const CComObject<DragPoint> * const pdp1 = m_vdpoint[i];
-         const CComObject<DragPoint> * const pdp2 = m_vdpoint[(i < cpoint - 1) ? (i + 1) : 0];
-
-         if ((pdp1->m_v.x == pdp2->m_v.x) && (pdp1->m_v.y == pdp2->m_v.y) && (pdp1->m_v.z == pdp2->m_v.z))
-         {
-            // Special case - two points coincide
-            continue;
-         }
-
-         int iprev = (pdp1->m_smooth ? i - 1 : i);
-         if (iprev < 0)
-            iprev = (loop ? cpoint - 1 : 0);
-
-         int inext = (pdp2->m_smooth ? i + 2 : i + 1);
-         if (inext >= cpoint)
-            inext = (loop ? inext - cpoint : cpoint - 1);
-
-         const CComObject<DragPoint> * const pdp0 = m_vdpoint[iprev];
-         const CComObject<DragPoint> * const pdp3 = m_vdpoint[inext];
-
-         CatmullCurve<Dim> cc;
-         cc.SetCurve(pdp0->m_v, pdp1->m_v, pdp2->m_v, pdp3->m_v);
-
-         T rendv1;
-
-         rendv1.set(pdp1->m_v);
-         rendv1.smooth = pdp1->m_smooth;
-         rendv1.slingshot = pdp1->m_slingshot;
-         rendv1.controlPoint = true;
-
-         // Properties of last point don't matter, because it won't be added to the list on this pass (it'll get added as the first point of the next curve)
-         rendv2.set(pdp2->m_v);
-
-         RecurseSmoothLine(cc, 0.f, 1.f, rendv1, rendv2, vv, accuracy);
-      }
-
-      if (!loop)
-      {
-         // Add the very last point to the list because nobody else added it
-         rendv2.smooth = true;
-         rendv2.slingshot = false;
-         rendv2.controlPoint = false;
-         vv.push_back(rendv2);
-      }
-   }
+   void GetRgVertex(vector<T> &vv, const bool loop = true, const float accuracy = 4.f) const;
 
    vector< CComObject<DragPoint>* > m_vdpoint;
 };
@@ -130,7 +79,12 @@ class DragPoint :
    public CComCoClass<DragPoint, &CLSID_DragPoint>,
    public ISelect
 {
+#ifdef __APPLE__
+   STDMETHOD(GetIDsOfNames)(REFIID /*riid*/, LPOLESTR* rgszNames, UINT cNames, LCID lcid,DISPID* rgDispId);
+   STDMETHOD(Invoke)(DISPID dispIdMember, REFIID /*riid*/, LCID lcid, WORD wFlags, DISPPARAMS* pDispParams, VARIANT* pVarResult, EXCEPINFO* pExcepInfo, UINT* puArgErr);
+#endif
 public:
+
    DragPoint() { }
 
    void Init(IHaveDragPoints *pihdp, const float x, const float y, const float z, const bool smooth);
@@ -206,5 +160,62 @@ public:
    static Vertex3Ds m_copyPoint;   // coordinates of a control point to copy
    static bool      m_pointCopied;
 };
+
+template <typename T>
+void IHaveDragPoints::GetRgVertex(vector<T> &vv, const bool loop, const float accuracy) const {
+   static const int Dim = T::Dim;    // for now, this is always 2 or 3
+
+   const int cpoint = (int)m_vdpoint.size();
+   const int endpoint = loop ? cpoint : cpoint - 1;
+
+   T rendv2;
+
+   for (int i = 0; i < endpoint; i++)
+   {
+      const CComObject<DragPoint> * const pdp1 = m_vdpoint[i];
+      const CComObject<DragPoint> * const pdp2 = m_vdpoint[(i < cpoint - 1) ? (i + 1) : 0];
+
+      if ((pdp1->m_v.x == pdp2->m_v.x) && (pdp1->m_v.y == pdp2->m_v.y) && (pdp1->m_v.z == pdp2->m_v.z))
+      {
+         // Special case - two points coincide
+         continue;
+      }
+
+      int iprev = (pdp1->m_smooth ? i - 1 : i);
+      if (iprev < 0)
+         iprev = (loop ? cpoint - 1 : 0);
+
+      int inext = (pdp2->m_smooth ? i + 2 : i + 1);
+      if (inext >= cpoint)
+         inext = (loop ? inext - cpoint : cpoint - 1);
+
+      const CComObject<DragPoint> * const pdp0 = m_vdpoint[iprev];
+      const CComObject<DragPoint> * const pdp3 = m_vdpoint[inext];
+
+      CatmullCurve<Dim> cc;
+      cc.SetCurve(pdp0->m_v, pdp1->m_v, pdp2->m_v, pdp3->m_v);
+
+      T rendv1;
+
+      rendv1.set(pdp1->m_v);
+      rendv1.smooth = pdp1->m_smooth;
+      rendv1.slingshot = pdp1->m_slingshot;
+      rendv1.controlPoint = true;
+
+      // Properties of last point don't matter, because it won't be added to the list on this pass (it'll get added as the first point of the next curve)
+      rendv2.set(pdp2->m_v);
+
+      RecurseSmoothLine(cc, 0.f, 1.f, rendv1, rendv2, vv, accuracy);
+   }
+
+   if (!loop)
+   {
+      // Add the very last point to the list because nobody else added it
+      rendv2.smooth = true;
+      rendv2.slingshot = false;
+      rendv2.controlPoint = false;
+      vv.push_back(rendv2);
+   }
+}
 
 #endif // !defined(AFX_DRAGPOINT_H__E0C074C9_5BF2_4F8C_8012_76082BAC2203__INCLUDED_)

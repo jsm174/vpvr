@@ -6,7 +6,7 @@
 #define AFX_RUBBER_H__B0715DC0_002F_11E4_9191_0800200C9A66__INCLUDED_
 
 #include "resource.h"       // main symbols
-#include <inc/robin_hood.h>
+#include "inc/robin_hood.h"
 
 class RubberData final : public BaseProperty
 {
@@ -42,6 +42,10 @@ class Rubber :
    public IFireEvents,
    public IPerPropertyBrowsing // Ability to fill in dropdown in property browser
 {
+#ifdef __APPLE__
+   STDMETHOD(GetIDsOfNames)(REFIID /*riid*/, LPOLESTR* rgszNames, UINT cNames, LCID lcid,DISPID* rgDispId);
+   STDMETHOD(Invoke)(DISPID dispIdMember, REFIID /*riid*/, LCID lcid, WORD wFlags, DISPPARAMS* pDispParams, VARIANT* pVarResult, EXCEPINFO* pExcepInfo, UINT* puArgErr);
+#endif
 public:
    Rubber();
    virtual ~Rubber();

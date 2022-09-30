@@ -50,6 +50,10 @@ class Bumper :
    public IPerPropertyBrowsing // Ability to fill in dropdown in property browser
    //public EditableImpl<Bumper>
 {
+#ifdef __APPLE__
+   STDMETHOD(GetIDsOfNames)(REFIID /*riid*/, LPOLESTR* rgszNames, UINT cNames, LCID lcid,DISPID* rgDispId);
+   STDMETHOD(Invoke)(DISPID dispIdMember, REFIID /*riid*/, LCID lcid, WORD wFlags, DISPPARAMS* pDispParams, VARIANT* pVarResult, EXCEPINFO* pExcepInfo, UINT* puArgErr);
+#endif
 public:
    Bumper();
    ~Bumper();
@@ -72,7 +76,7 @@ public:
    BEGIN_CONNECTION_POINT_MAP(Bumper)
       CONNECTION_POINT_ENTRY(DIID_IBumperEvents)
    END_CONNECTION_POINT_MAP()
-   
+
    DECLARE_REGISTRY_RESOURCEID(IDR_BUMPER)
 
    // ISupportsErrorInfo

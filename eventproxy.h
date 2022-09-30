@@ -64,10 +64,20 @@ public:
 
          if (pcollection!=nullptr)
          {
+#ifndef __APPLE__
             CComVariant rgvar[1] = { CComVariant((long)pT->m_viEventCollection[i]) };
+#else
+            CComVariant rgvar[1] = { CComVariant(pT->m_viEventCollection[i]) };
+#endif
             DISPPARAMS dispparams = { rgvar, nullptr, 1, 0 };
 
+#ifndef __APPLE__
             pcollection->FireDispID(dispid, &dispparams);
+#else
+#ifndef __APPLE__
+            ((EventProxy*)pcollection)->FireDispID(dispid, &dispparams);
+#endif
+#endif
          }
       }
 

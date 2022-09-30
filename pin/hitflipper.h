@@ -2,6 +2,10 @@
 
 //#define DEBUG_FLIPPERS
 
+#ifdef __APPLE__
+class Flipper;
+#endif
+
 class FlipperMoverObject : public MoverObject
 {
 public:

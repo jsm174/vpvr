@@ -6,7 +6,7 @@
 #define AFX_PRIMITIVE_H__31CD2D6B_9BDD_4B1B_BC62_B9DE588A0CAA__INCLUDED_
 
 #include "resource.h"
-#include <inc/robin_hood.h>
+#include "inc/robin_hood.h"
 
 class Mesh final
 {
@@ -105,6 +105,10 @@ class Primitive :
    public IFireEvents,
    public IPerPropertyBrowsing // Ability to fill in dropdown in property browser
 {
+#ifdef __APPLE__
+   STDMETHOD(GetIDsOfNames)(REFIID /*riid*/, LPOLESTR* rgszNames, UINT cNames, LCID lcid,DISPID* rgDispId);
+   STDMETHOD(Invoke)(DISPID dispIdMember, REFIID /*riid*/, LCID lcid, WORD wFlags, DISPPARAMS* pDispParams, VARIANT* pVarResult, EXCEPINFO* pExcepInfo, UINT* puArgErr);
+#endif
 public:
    static constexpr int Max_Primitive_Sides = 100; //!! 100 works for sleepy, 99 doesn't
 
