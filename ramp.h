@@ -50,6 +50,14 @@ class Ramp :
    public IFireEvents,
    public IPerPropertyBrowsing // Ability to fill in dropdown in property browser
 {
+#ifdef __APPLE__
+public:
+   static robin_hood::unordered_map<wstring, int> m_nameIDMap;
+   STDMETHOD(GetIDsOfNames)(REFIID /*riid*/, LPOLESTR* rgszNames, UINT cNames, LCID lcid,DISPID* rgDispId);
+   STDMETHOD(Invoke)(DISPID dispIdMember, REFIID /*riid*/, LCID lcid, WORD wFlags, DISPPARAMS* pDispParams, VARIANT* pVarResult, EXCEPINFO* pExcepInfo, UINT* puArgErr);
+   static robin_hood::unordered_map<int, wstring> m_idNameMap;
+   virtual HRESULT FireDispID(const DISPID dispid, DISPPARAMS * const pdispparams) override;
+#endif
 public:
    Ramp();
    virtual ~Ramp();
@@ -168,7 +176,7 @@ private:
 
    void AssignHeightToControlPoint(const RenderVertex3D &v, const float height);
 
-   void AddJoint(vector<HitObject *> &pvho, const Vertex3Ds &v1, const Vertex3Ds &v2);
+   void AddJoint(vector<HitObject*> &pvho, const Vertex3Ds& v1, const Vertex3Ds& v2);
    void AddJoint2D(vector<HitObject*> &pvho, const Vertex2D& p, const float zlow, const float zhigh);
    void CheckJoint(vector<HitObject*> &pvho, const HitTriangle * const ph3d1, const HitTriangle * const ph3d2);
 

@@ -1,5 +1,7 @@
 #include "stdafx.h"
+#ifndef __APPLE__
 #include "captureExt.h"
+#endif
 
 Textbox::Textbox()
 {
@@ -37,6 +39,7 @@ void Textbox::SetDefaults(bool fromMouseClick)
    m_backglass = true;
    m_d.m_visible = true;
 
+#ifndef __APPLE__
    FONTDESC fd;
    fd.cbSizeofstruct = sizeof(FONTDESC);
    bool free_lpstrName = false;
@@ -107,6 +110,7 @@ void Textbox::SetDefaults(bool fromMouseClick)
    if (free_lpstrName)
       free(fd.lpstrName);
 
+#endif
 #undef regKey
 }
 
@@ -121,6 +125,7 @@ void Textbox::WriteRegDefaults()
    SaveValueBool(regKey, "Transparent"s, m_d.m_transparent);
    SaveValueBool(regKey, "DMD"s, m_d.m_isDMD);
 
+#ifndef __APPLE__
    FONTDESC fd;
    fd.cbSizeofstruct = sizeof(FONTDESC);
    m_pIFont->get_Size(&fd.cySize);
@@ -149,6 +154,7 @@ void Textbox::WriteRegDefaults()
    SaveValue(regKey, "Text"s, m_d.m_sztext);
 
 #undef regKey
+#endif
 }
 
 char * Textbox::GetFontName()
@@ -167,6 +173,7 @@ char * Textbox::GetFontName()
 
 HFONT Textbox::GetFont()
 {
+#ifndef __APPLE__
     LOGFONT lf = {};
     lf.lfHeight = -MulDiv((int)m_d.m_fontsize, GetDeviceCaps(g_pvp->GetDC(), LOGPIXELSY), 72);
     lf.lfCharSet = DEFAULT_CHARSET;
@@ -185,9 +192,11 @@ HFONT Textbox::GetFont()
     hr = m_pIFont->get_Italic(&bl);
 
     lf.lfItalic = (BYTE)bl;
-
     const HFONT hFont = CreateFontIndirect(&lf);
     return hFont;
+#else
+   return 0L;
+#endif
 }
 
 STDMETHODIMP Textbox::InterfaceSupportsErrorInfo(REFIID riid)
@@ -262,6 +271,7 @@ void Textbox::EndPlay()
 
 void Textbox::RenderDynamic()
 {
+#ifndef __APPLE__
    TRACE_FUNCTION();
 
    const bool dmd = (m_d.m_isDMD || StrStrI(m_d.m_sztext.c_str(), "DMD") != nullptr); //!! second part is VP10.0 legacy
@@ -312,16 +322,19 @@ void Textbox::RenderDynamic()
 
    //if (m_ptable->m_tblMirrorEnabled^m_ptable->m_reflectionEnabled)
    //	pd3dDevice->SetRenderStateCulling(RenderDevice::CULL_CCW);
+#endif
 }
 
 void Textbox::RenderSetup()
 {
+#ifndef __APPLE__
    m_pIFont->Clone(&m_pIFontPlay);
 
    CY size;
    m_pIFontPlay->get_Size(&size);
    size.int64 = (LONGLONG)(size.int64 / 1.5 * g_pplayer->m_wnd_height * g_pplayer->m_wnd_width);
    m_pIFontPlay->put_Size(size);
+#endif
 
    PreRenderText();
 }
@@ -341,6 +354,7 @@ void Textbox::PreRenderText()
    const int width = rect.right - rect.left;
    const int height = rect.bottom - rect.top;
 
+#ifndef __APPLE__
    BITMAPINFO bmi = {};
    bmi.bmiHeader.biSize = sizeof(BITMAPINFOHEADER);
    bmi.bmiHeader.biWidth = width;
@@ -426,6 +440,7 @@ void Textbox::PreRenderText()
    SelectObject(hdc, oldBmp);
    DeleteDC(hdc);
    DeleteObject(hbm);
+#endif
 }
 
 void Textbox::SetObjectPos()
@@ -518,10 +533,12 @@ HRESULT Textbox::SaveData(IStream *pstm, HCRYPTHASH hcrypthash, const bool backu
    ISelect::SaveData(pstm, hcrypthash);
 
    bw.WriteTag(FID(FONT));
+#ifndef __APPLE__
    IPersistStream * ips;
    m_pIFont->QueryInterface(IID_IPersistStream, (void **)&ips);
    HRESULT hr;
    hr = ips->Save(pstm, TRUE);
+#endif
 
    bw.WriteTag(FID(ENDB));
 
@@ -559,6 +576,7 @@ bool Textbox::LoadToken(const int id, BiffReader * const pbr)
    case FID(IDMD): pbr->GetBool(m_d.m_isDMD); break;
    case FID(FONT):
    {
+#ifndef __APPLE__
       if (!m_pIFont)
       {
          FONTDESC fd;
@@ -577,6 +595,19 @@ bool Textbox::LoadToken(const int id, BiffReader * const pbr)
       m_pIFont->QueryInterface(IID_IPersistStream, (void **)&ips);
 
       ips->Load(pbr->m_pistream);
+#else
+      // https://github.com/freezy/VisualPinball.Engine/blob/master/VisualPinball.Engine/VPT/Font.cs#L25
+
+      char data[255];
+
+      ULONG read;
+      pbr->ReadBytes(data, 3, &read); 
+      pbr->ReadBytes(data, 1, &read); // Italic
+      pbr->ReadBytes(data, 2, &read); // Weight 
+      pbr->ReadBytes(data, 4, &read); // Size
+      pbr->ReadBytes(data, 1, &read); // nameLen
+      pbr->ReadBytes(data, (int)data[0], &read); // name
+#endif
 
       break;
    }

@@ -226,6 +226,7 @@ public:
 	   {
 		  const PinDirectSoundWavCopy * const ppsc = m_copiedwav[i];
 		  DWORD status;
+#ifndef __APPLE__
 		  ppsc->m_pDSBuffer->GetStatus(&status);
 		  if (!(status & DSBSTATUS_PLAYING)) // sound is done, we can throw it away now
 		  {
@@ -235,6 +236,9 @@ public:
 		  }
 		  else
 			 i++;
+#else
+		  i++;
+#endif
 	   }
 	}
 

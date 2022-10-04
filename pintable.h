@@ -5,11 +5,17 @@
 #if !defined(AFX_PINTABLE_H__D14A2DAB_2984_4FE7_A102_D0283ECE31B4__INCLUDED_)
 #define AFX_PINTABLE_H__D14A2DAB_2984_4FE7_A102_D0283ECE31B4__INCLUDED_
 
-#include <inc/robin_hood.h>
+#include "inc/robin_hood.h"
 
 #include <atomic>
 #include "hash.h"
+
+#ifndef __APPLE__
 #include "SearchSelectDialog.h"
+#else
+#include <iostream>
+class Light;
+#endif
 
 #define VIEW_PLAYFIELD 1
 #define VIEW_BACKGLASS 2
@@ -30,10 +36,10 @@ struct LightSource
 
 struct ProtectionData
 {
-   long fileversion;
-   long size;
+   LONG fileversion;
+   LONG size;
    unsigned char paraphrase[16 + 8];
-   unsigned long flags;
+   UINT32 flags;
    int keyversion;
    int spare1;
    int spare2;
@@ -65,9 +71,21 @@ class ProgressDialog : public CDialog
 {
 public:
    ProgressDialog();
-   void SetProgress(const int value) { m_progressBar.SetPos(value); }
+   void SetProgress(const int value) {
+#ifndef __APPLE__
+      m_progressBar.SetPos(value);
+#else
+      std::cout << value << std::endl;
+#endif
+   }
 
-   void SetName(const string &text) { m_progressName.SetWindowText(text.c_str()); }
+   void SetName(const string &text) { 
+#ifndef __APPLE__
+      m_progressName.SetWindowText(text.c_str());
+#else
+      std::cout << text << std::endl;
+#endif
+   }
 
 protected:
    BOOL OnInitDialog() final;
@@ -92,6 +110,14 @@ class PinTable : public CWnd,
                  public IEditable,
                  public IPerPropertyBrowsing // Ability to fill in dropdown in property browser
 {
+#ifdef __APPLE__
+public:
+   static robin_hood::unordered_map<wstring, int> m_nameIDMap;
+   STDMETHOD(GetIDsOfNames)(REFIID /*riid*/, LPOLESTR* rgszNames, UINT cNames, LCID lcid,DISPID* rgDispId);
+   STDMETHOD(Invoke)(DISPID dispIdMember, REFIID /*riid*/, LCID lcid, WORD wFlags, DISPPARAMS* pDispParams, VARIANT* pVarResult, EXCEPINFO* pExcepInfo, UINT* puArgErr);
+   static robin_hood::unordered_map<int, wstring> m_idNameMap;
+   virtual HRESULT FireDispID(const DISPID dispid, DISPPARAMS * const pdispparams) override;
+#endif
 public:
    STDMETHOD(get_BallFrontDecal)(/*[out, retval]*/ BSTR *pVal);
    STDMETHOD(put_BallFrontDecal)(/*[in]*/ BSTR newVal);
@@ -883,8 +909,17 @@ private:
    bool m_moving;
 };
 
-class ScriptGlobalTable : public CComObjectRootEx<CComSingleThreadModel>, public IDispatchImpl<ITableGlobal, &IID_ITableGlobal, &LIBID_VPinballLib>, public IScriptable
+class ScriptGlobalTable : 
+   public CComObjectRootEx<CComSingleThreadModel>, 
+   public IDispatchImpl<ITableGlobal, &IID_ITableGlobal, &LIBID_VPinballLib>, 
+   public IScriptable
 {
+#ifdef __APPLE__
+public:
+   static robin_hood::unordered_map<wstring, int> m_nameIDMap;
+   STDMETHOD(GetIDsOfNames)(REFIID /*riid*/, LPOLESTR* rgszNames, UINT cNames, LCID lcid,DISPID* rgDispId);
+   STDMETHOD(Invoke)(DISPID dispIdMember, REFIID /*riid*/, LCID lcid, WORD wFlags, DISPPARAMS* pDispParams, VARIANT* pVarResult, EXCEPINFO* pExcepInfo, UINT* puArgErr);
+#endif
 public:
    // Headers to support communication between the game and the script.
    STDMETHOD(EndModal)();

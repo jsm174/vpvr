@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.18)
+cmake_minimum_required(VERSION 3.22)
 
 file(READ vpversion.h version)
 string(REGEX MATCH "VP_VERSION_MAJOR[ ]+([0-9]+)" _tmp ${version})
@@ -10,16 +10,15 @@ set(VERSION_REV "${CMAKE_MATCH_1}")
 
 project(vpinball VERSION "${VERSION_MAJOR}.${VERSION_MINOR}.${VERSION_REV}")
 
-set(CMAKE_CXX_STANDARD 11)
+set(CMAKE_CXX_STANDARD 14)
 set(CMAKE_C_STANDARD 99)
 
-add_library(glad 
-   inc/glad/glad.h 
-   glad.c
+add_library(glad
+   inc/glad/glad.c
 )
 
-target_include_directories(glad PUBLIC 
-   inc
+target_include_directories(glad PUBLIC
+   inc/glad
 )
 
 set_target_properties(glad PROPERTIES
@@ -30,7 +29,6 @@ add_compile_definitions(
    ENABLE_SDL_INPUT
    ENABLE_SDL
    ENABLE_XINPUT
-   TWEAK_GL_SHADER
    ENABLE_BAM
    USE_DINPUT8
 )
@@ -111,10 +109,6 @@ add_executable(vpinball WIN32
    backGlass.h
    captureExt.cpp
    captureExt.h
-   dialogs/VROptionsDialog.cpp
-   dialogs/VROptionsDialog.h
-   Shader.cpp
-
    BlackBox.cpp
    BlackBox.h
    codeviewedit.cpp
@@ -149,6 +143,8 @@ add_executable(vpinball WIN32
    dialogs/ScriptErrorDialog.h
    dialogs/PhysicsOptionsDialog.cpp
    dialogs/PhysicsOptionsDialog.h
+   dialogs/VROptionsDialog.cpp
+   dialogs/VROptionsDialog.h
    dialogs/Properties/BackglassCameraProperty.cpp
    dialogs/Properties/BackglassCameraProperty.h
    dialogs/Properties/BackglassVisualsProperty.cpp
@@ -356,7 +352,6 @@ add_executable(vpinball WIN32
    media/wavread.h
    MemoryStatus.cpp
    MemoryStatus.h
-   rubber.cpp
    hash.cpp
    hash.h
    kdtree.cpp
@@ -492,7 +487,9 @@ add_executable(vpinball WIN32
    Sampler.cpp
    Sampler.h
    resource.h
+   rubber.cpp
    rubber.h
+   Shader.cpp
    Shader.h
    slintf.cpp
    slintf.h
@@ -569,13 +566,16 @@ add_executable(vpinball WIN32
 
 target_include_directories(vpinball PUBLIC
    $ENV{DXSDK_DIR}/Include
+   ${CMAKE_CURRENT_SOURCE_DIR}
    dialogs
    shader
    inc
+   inc/sdl2
    inc/win32xx/include
    pin
    media
-   ${CMAKE_CURRENT_SOURCE_DIR}
+   imgui
+   imgui/implot
    ${CMAKE_CURRENT_BINARY_DIR}/$(IntDir)
    ${CMAKE_CURRENT_BINARY_DIR}/$(IntDir)/shader
 )
@@ -624,4 +624,14 @@ set_target_properties(vpinball PROPERTIES
    VS_DPI_AWARE "On"
    RUNTIME_OUTPUT_NAME "VPinballX_GL"
    MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:DEBUG>:Debug>"
+)
+
+add_custom_command(TARGET vpinball POST_BUILD
+   COMMAND "${CMAKE_COMMAND}" -E copy_directory "${CMAKE_SOURCE_DIR}/glshader" "$<TARGET_FILE_DIR:vpinball>/glshader"
+   COMMAND "${CMAKE_COMMAND}" -E copy_directory "${CMAKE_SOURCE_DIR}/scripts" "$<TARGET_FILE_DIR:vpinball>/scripts"
+   COMMAND "${CMAKE_COMMAND}" -E copy "${CMAKE_SOURCE_DIR}/dll/FreeImage.dll" "$<TARGET_FILE_DIR:vpinball>"
+   COMMAND "${CMAKE_COMMAND}" -E copy "${CMAKE_SOURCE_DIR}/dll/Bass.dll" "$<TARGET_FILE_DIR:vpinball>"
+   COMMAND "${CMAKE_COMMAND}" -E copy "${CMAKE_SOURCE_DIR}/dll/openvr_api.dll" "$<TARGET_FILE_DIR:vpinball>"
+   COMMAND "${CMAKE_COMMAND}" -E copy "${CMAKE_SOURCE_DIR}/dll/SDL2.dll" "$<TARGET_FILE_DIR:vpinball>"
+   COMMAND "${CMAKE_COMMAND}" -E copy "${CMAKE_SOURCE_DIR}/dll/SciLexerVP.dll" "$<TARGET_FILE_DIR:vpinball>"
 )

@@ -3,20 +3,26 @@
 #include "resource.h"
 #include "hash.h"
 #include <algorithm>
+#ifndef __APPLE__
 #include <atlsafe.h>
+#endif
 #include "objloader.h"
 #include <rapidxml.hpp>
 #include <rapidxml_print.hpp>
 #include <fstream>
 #include <sstream>
 #include "Shader.h"
+#ifndef __APPLE__
 #include "captureExt.h"
+#endif
 #include "freeimage.h"
-#include "inc\ThreadPool.h"
-#include "inc\scalefx.h"
+#include "inc/ThreadPool.h"
+#include "inc/scalefx.h"
 
-#include "inc\serial.h"
+#ifndef __APPLE__
+#include "inc/serial.h"
 static serial Serial;
+#endif
 
 using namespace rapidxml;
 
@@ -351,6 +357,7 @@ STDMETHODIMP ScriptGlobalTable::get_LockbarKey(long *pVal)
 
 bool ScriptGlobalTable::GetTextFileFromDirectory(const char * const szfilename, const char * const dirname, BSTR *pContents)
 {
+#ifndef __APPLE__
    string szPath;
    if (dirname != nullptr)
       szPath = m_vpinball->m_szMyPath + dirname;
@@ -396,6 +403,21 @@ bool ScriptGlobalTable::GetTextFileFromDirectory(const char * const szfilename, 
    }
 
    return success;
+#else
+   std::ifstream scriptFile;
+   scriptFile.open(string(dirname).append(szfilename), std::ifstream::in);
+   if (scriptFile.is_open()) {
+      std::stringstream buffer;
+      buffer << scriptFile.rdbuf();
+
+      const WCHAR * const wz = MakeWide(buffer.str());
+      *pContents = SysAllocString(wz);
+      delete[] wz;
+
+      return true;
+   }
+   return false;
+#endif
 }
 
 STDMETHODIMP ScriptGlobalTable::GetCustomParam(long index, BSTR *param)
@@ -412,6 +434,7 @@ STDMETHODIMP ScriptGlobalTable::GetTextFile(BSTR FileName, BSTR *pContents)
    char szFileName[MAX_PATH];
    WideCharToMultiByteNull(CP_ACP, 0, FileName, -1, szFileName, MAX_PATH, nullptr, nullptr);
 
+#ifndef __APPLE__
    // try to load the file from the current directory
    bool success = GetTextFileFromDirectory(szFileName, nullptr, pContents);
 
@@ -429,6 +452,9 @@ STDMETHODIMP ScriptGlobalTable::GetTextFile(BSTR FileName, BSTR *pContents)
       success = GetTextFileFromDirectory(("C:\\Visual Pinball\\Scripts\\"s + szFileName).c_str(), nullptr, pContents);
    if (!success)
       success = GetTextFileFromDirectory(("C:\\Visual Pinball\\Tables\\"s + szFileName).c_str(), nullptr, pContents);
+#else 
+   bool success = GetTextFileFromDirectory(szFileName, "./scripts/", pContents);
+#endif
 
    return success ? S_OK : E_FAIL;
 }
@@ -474,6 +500,7 @@ STDMETHODIMP ScriptGlobalTable::SaveValue(BSTR TableName, BSTR ValueName, VARIAN
 {
    HRESULT hr;
 
+#ifndef __APPLE__
    const wstring wzPath = m_vpinball->m_wzMyPath + L"User\\VPReg.stg";
 
    IStorage *pstgRoot;
@@ -524,6 +551,7 @@ STDMETHODIMP ScriptGlobalTable::SaveValue(BSTR TableName, BSTR ValueName, VARIAN
 
    pstgRoot->Commit(STGC_DEFAULT);
    pstgRoot->Release();
+#endif
 
    return S_OK;
 }
@@ -532,6 +560,7 @@ STDMETHODIMP ScriptGlobalTable::LoadValue(BSTR TableName, BSTR ValueName, VARIAN
 {
    HRESULT hr;
 
+#ifndef __APPLE__
    const wstring wzPath = m_vpinball->m_wzMyPath + L"User\\VPReg.stg";
 
    IStorage *pstgRoot;
@@ -580,6 +609,7 @@ STDMETHODIMP ScriptGlobalTable::LoadValue(BSTR TableName, BSTR ValueName, VARIAN
    SetVarBstr(Value, SysAllocString(wzT));
 
    delete[] wzT;
+#endif
 
    return S_OK;
 }
@@ -831,6 +861,7 @@ STDMETHODIMP ScriptGlobalTable::put_DMDHeight(int pVal)
 
 STDMETHODIMP ScriptGlobalTable::put_DMDPixels(VARIANT pVal) // assumes VT_UI1 as input //!! use 64bit instead of 8bit to reduce overhead??
 {
+#ifndef __APPLE__
    if (captureExternalDMD()) // If DMD capture is enabled check if external DMD exists
       return S_OK;
 
@@ -872,12 +903,14 @@ STDMETHODIMP ScriptGlobalTable::put_DMDPixels(VARIANT pVal) // assumes VT_UI1 as
 
       g_pplayer->m_pin3d.m_pd3dPrimaryDevice->m_texMan.SetDirty(g_pplayer->m_texdmd);
    }
+#endif
 
    return S_OK;
 }
 
 STDMETHODIMP ScriptGlobalTable::put_DMDColoredPixels(VARIANT pVal) //!! assumes VT_UI4 as input //!! use 64bit instead of 32bit to reduce overhead??
 {
+#ifndef __APPLE__
    if (captureExternalDMD()) // If DMD capture is enabled check if external DMD exists
       return S_OK;
 
@@ -919,6 +952,7 @@ STDMETHODIMP ScriptGlobalTable::put_DMDColoredPixels(VARIANT pVal) //!! assumes 
 
 		g_pplayer->m_pin3d.m_pd3dPrimaryDevice->m_texMan.SetDirty(g_pplayer->m_texdmd);
 	}
+#endif
 
 	return S_OK;
 }
@@ -1033,35 +1067,46 @@ STDMETHODIMP ScriptGlobalTable::get_VersionRevision(int *pVal)
 
 STDMETHODIMP ScriptGlobalTable::OpenSerial(BSTR device)
 {
+#ifndef __APPLE__
    char szDevice[MAX_PATH];
    WideCharToMultiByteNull(CP_ACP, 0, device, -1, szDevice, MAX_PATH, nullptr, nullptr);
 
    return Serial.open(szDevice) ? S_OK : E_FAIL;
+#else
+   return E_FAIL;
+#endif
 }
 
 STDMETHODIMP ScriptGlobalTable::CloseSerial()
 {
+#ifndef __APPLE__
    Serial.close();
+#endif
    return S_OK;
 }
 
 STDMETHODIMP ScriptGlobalTable::FlushSerial()
 {
+#ifndef __APPLE__
    Serial.flush();
+#endif
    return S_OK;
 }
 
 STDMETHODIMP ScriptGlobalTable::SetupSerial(int baud, int bits, int parity, int stopbit, VARIANT_BOOL rts, VARIANT_BOOL dtr)
 {
+#ifndef __APPLE__
    Serial.setup(serial::get_baud(baud),serial::get_bits(bits),parity == 0 ? SERIAL_PARITY_NONE : (parity == 1 ? SERIAL_PARITY_EVEN : SERIAL_PARITY_ODD),serial::get_stopbit(stopbit));
    Serial.set_rts(VBTOb(rts));
    Serial.set_dtr(VBTOb(dtr));
+#endif
 
    return S_OK;
 }
 
 STDMETHODIMP ScriptGlobalTable::ReadSerial(int size, VARIANT *pVal)
 {
+#ifndef __APPLE__
    SAFEARRAY *psa = SafeArrayCreateVector(VT_VARIANT, 0, size);
 
    VARIANT *pData;
@@ -1077,12 +1122,14 @@ STDMETHODIMP ScriptGlobalTable::ReadSerial(int size, VARIANT *pVal)
 
    pVal->vt = VT_ARRAY | VT_VARIANT;
    pVal->parray = psa;
+#endif
 
    return S_OK;
 }
 
 STDMETHODIMP ScriptGlobalTable::WriteSerial(VARIANT pVal)
 {
+#ifndef __APPLE__
    SAFEARRAY *psa = pVal.parray;
    SAFEARRAYBOUND *psafearraybound = &((psa->rgsabound)[0]);
    const LONG size = (LONG)psafearraybound->cElements;
@@ -1099,11 +1146,13 @@ STDMETHODIMP ScriptGlobalTable::WriteSerial(VARIANT pVal)
    }
 
    Serial.write(data);
+#endif
    return S_OK;
 }
 
 STDMETHODIMP ScriptGlobalTable::GetSerialDevices(VARIANT *pVal)
 {
+#ifndef __APPLE__
    static vector<string> availablePorts;
    serial::list_ports(availablePorts);
 
@@ -1117,6 +1166,7 @@ STDMETHODIMP ScriptGlobalTable::GetSerialDevices(VARIANT *pVal)
 
    pVal->vt = VT_ARRAY | VT_VARIANT;
    pVal->parray = psa;
+#endif
 
    return S_OK;
 }
@@ -1319,12 +1369,15 @@ PinTable::~PinTable()
    m_psgt->Release();
    m_psgt = nullptr;
 
+#ifndef __APPLE__
    if (m_hbmOffScreen)
       DeleteObject(m_hbmOffScreen);
+#endif
 }
 
 void PinTable::FVerifySaveToClose()
 {
+#ifndef __APPLE__
    if (!m_vAsyncHandles.empty())
    {
       /*const DWORD wait =*/ WaitForMultipleObjects((DWORD)m_vAsyncHandles.size(), m_vAsyncHandles.data(), TRUE, INFINITE);
@@ -1336,6 +1389,7 @@ void PinTable::FVerifySaveToClose()
 
       m_vpinball->SetActionCur(string());
    }
+#endif
 }
 
 void PinTable::DeleteFromLayer(IEditable *obj)
@@ -1352,12 +1406,15 @@ void PinTable::DeleteFromLayer(IEditable *obj)
 
 void PinTable::UpdatePropertyImageList()
 { 
+#ifndef __APPLE__
     // just update the combo boxes in the property dialog
     g_pvp->GetPropertiesDocker()->GetContainProperties()->GetPropertyDialog()->UpdateTabs(m_vmultisel);
+#endif
 }
 
 void PinTable::InitBuiltinTable(const size_t tableId)
 {
+#ifndef __APPLE__
    HRSRC hrsrc;
    // Get our new table resource, get it to be opened as a storage, and open it like a normal file
    switch (tableId)
@@ -1409,6 +1466,7 @@ void PinTable::InitBuiltinTable(const size_t tableId)
 
    //MAKE_WIDEPTR_FROMANSI(wszFileName, m_szFileName.c_str());
    //ApcProject->APC_PUT(DisplayName)(wszFileName);
+#endif
 }
 
 void PinTable::SetDefaultView()
@@ -1421,13 +1479,17 @@ void PinTable::SetDefaultView()
 
 void PinTable::SetCaption(const string& szCaption)
 {
+#ifndef __APPLE__
    m_mdiTable->SetWindowText(szCaption.c_str());
    m_pcv->SetCaption(szCaption);
+#endif
 }
 
 void PinTable::SetMouseCapture()
 {
+#ifndef __APPLE__
     SetCapture();
+#endif
 }
 
 int PinTable::ShowMessageBox(const char *text) const
@@ -1437,9 +1499,13 @@ int PinTable::ShowMessageBox(const char *text) const
 
 POINT PinTable::GetScreenPoint() const
 {
+#ifndef __APPLE__
     CPoint pt = GetCursorPos();
     ScreenToClient(pt);
     return pt;
+#else 
+     return POINT();
+#endif
 }
 
 #define CLEAN_MATERIAL(pEditMaterial) \
@@ -1475,7 +1541,6 @@ for (size_t ie = 0; ie < m_vedit.size(); ie++) \
 if(!found) \
     pEditSurface.clear(); \
 }}
-
 
 void PinTable::InitTablePostLoad()
 {
@@ -1697,7 +1762,9 @@ void PinTable::GetUniqueName(const WCHAR *const wzRoot, WCHAR * const wzUniqueNa
    while (!found)
    {
       WideStrNCopy(wzRoot, wzName, wzUniqueName_maxlength-3);
+#ifndef __APPLE__
       _itow_s(suffix, wzSuffix, sizeof(wzSuffix)/sizeof(wzSuffix[0]), 10);
+#endif
       if(suffix < 10)
          WideStrCat(L"0", wzName, wzUniqueName_maxlength);
       if(suffix < 100)
@@ -1732,6 +1799,7 @@ void PinTable::GetUniqueNamePasting(const int type, WCHAR * const wzUniqueName, 
 
 void PinTable::UIRenderPass2(Sur * const psur)
 {
+#ifndef __APPLE__
    const CRect rc = GetClientRect();
    psur->SetFillColor(m_vpinball->m_backgroundColor);
    psur->SetBorderColor(-1, false, 0);
@@ -1840,6 +1908,7 @@ void PinTable::UIRenderPass2(Sur * const psur)
    //    SetTextColor( psur->m_hdc,RGB(0,0,0));
 
    //   psur->DrawText( text,rc.left+10, rc.top, 90,20);
+#endif
 }
 
 // draws the backdrop content
@@ -1919,6 +1988,7 @@ bool PinTable::GetEMReelsEnabled() const
 // draws the main design screen
 void PinTable::Paint(HDC hdc)
 {
+#ifndef __APPLE__
    const CRect rc = GetClientRect();
 
    if (m_dirtyDraw)
@@ -1947,11 +2017,13 @@ void PinTable::Paint(HDC hdc)
 
    dc.SelectObject(hbmOld);
 
+#endif
    m_dirtyDraw = false;
 }
 
 ISelect *PinTable::HitTest(const int x, const int y)
 {
+#ifndef __APPLE__
    const CDC dc;
 
    const CRect rc = GetClientRect();
@@ -1986,6 +2058,9 @@ ISelect *PinTable::HitTest(const int x, const int y)
    std::reverse(m_allHitElements.begin(), m_allHitElements.end());
 
    return phs.m_pselected;
+#else
+   return nullptr;
+#endif
 }
 
 void PinTable::SetDirtyDraw()
@@ -1994,7 +2069,9 @@ void PinTable::SetDirtyDraw()
        return;
 
    m_dirtyDraw = true;
+#ifndef __APPLE__
    InvalidateRect(false);
+#endif
 }
 
 void PinTable::HandleLoadFailure()
@@ -2003,7 +2080,9 @@ void PinTable::HandleLoadFailure()
    g_keepUndoRecords = true;
    m_pcv->EndSession();
 
+#ifndef __APPLE__
    m_progressDialog.Destroy();
+#endif
 
    g_pvp->m_table_played_via_SelectTableOnStart = false;
 }
@@ -2021,9 +2100,11 @@ void PinTable::Play(const bool cameraMode)
    // get the load path from the table filename
    const string szLoadDir = PathFromFilename(m_szFileName);
    // make sure the load directory is the active directory
+#ifndef __APPLE__
    SetCurrentDirectory(szLoadDir.c_str());
 
    m_vpinball->ShowSubDialog(m_progressDialog, !g_pvp->m_open_minimized);
+#endif
 
    m_progressDialog.SetProgress(1);
    m_progressDialog.SetName("Backing Up Table State...");
@@ -2081,6 +2162,7 @@ void PinTable::Play(const bool cameraMode)
 
       g_pplayer = new Player(cameraMode, this);
       g_pplayer->CreateWnd();
+
       const float minSlope = (m_overridePhysics ? m_fOverrideMinSlope : m_angletiltMin);
       const float maxSlope = (m_overridePhysics ? m_fOverrideMaxSlope : m_angletiltMax);
       const float slope = minSlope + (maxSlope - minSlope) * m_globalDifficulty;
@@ -2150,17 +2232,22 @@ HRESULT PinTable::ApcProject_Save()
 
 void PinTable::BeginAutoSaveCounter()
 {
+#ifndef __APPLE__
    if (m_vpinball->m_autosaveTime > 0)
        m_vpinball->SetTimer(VPinball::TIMER_ID_AUTOSAVE, m_vpinball->m_autosaveTime, nullptr);
+#endif
 }
 
 void PinTable::EndAutoSaveCounter()
 {
+#ifndef __APPLE__
    m_vpinball->KillTimer(VPinball::TIMER_ID_AUTOSAVE);
+#endif
 }
 
 void PinTable::AutoSave()
 {
+#ifndef __APPLE__
    if (m_sdsCurrentDirtyState <= eSaveAutosaved)
       return;
 
@@ -2199,10 +2286,12 @@ void PinTable::AutoSave()
    }
 
    m_vpinball->SetCursorCur(nullptr, IDC_ARROW);
+#endif
 }
 
 HRESULT PinTable::Save(const bool saveAs)
 {
+#ifndef __APPLE__
    IStorage* pstgRoot;
 
    // Get file name if needed
@@ -2318,12 +2407,14 @@ HRESULT PinTable::Save(const bool saveAs)
       m_pcv->SetClean(eSaveClean);
       SetNonUndoableDirty(eSaveClean);
    }
+#endif
 
    return S_OK;
 }
 
 HRESULT PinTable::SaveToStorage(IStorage *pstgRoot)
 {
+#ifndef __APPLE__
    m_savingActive = true;
    RECT rc;
    ::SendMessage(m_vpinball->m_hwndStatusBar, SB_GETRECT, 2, (size_t)&rc);
@@ -2549,10 +2640,14 @@ HRESULT PinTable::SaveToStorage(IStorage *pstgRoot)
    m_savingActive = false;
 
    return hr;
+#else
+   return 0L;
+#endif
 }
 
 HRESULT PinTable::SaveSoundToStream(const PinSound * const pps, IStream *pstm)
 {
+#ifndef __APPLE__
    ULONG writ = 0;
    int len = (int)pps->m_szName.length();
 
@@ -2614,13 +2709,14 @@ HRESULT PinTable::SaveSoundToStream(const PinSound * const pps, IStream *pstm)
       return hr;
    if (FAILED(hr = pstm->Write(&pps->m_volume, sizeof(int), &writ)))
       return hr;
+#endif
 
    return S_OK;
 }
 
-
 HRESULT PinTable::LoadSoundFromStream(IStream *pstm, const int LoadFileVersion)
 {
+#ifndef __APPLE__
    int len;
    ULONG read;
    HRESULT hr;
@@ -2810,12 +2906,14 @@ HRESULT PinTable::LoadSoundFromStream(IStream *pstm, const int LoadFileVersion)
        }
 
    m_vsound.push_back(pps);
+#endif
    return S_OK;
 }
 
 
 HRESULT PinTable::WriteInfoValue(IStorage* pstg, const WCHAR * const wzName, const string& szValue, HCRYPTHASH hcrypthash)
 {
+#ifndef __APPLE__
    HRESULT hr = S_OK;
    IStream *pstm;
 
@@ -2835,11 +2933,15 @@ HRESULT PinTable::WriteInfoValue(IStorage* pstg, const WCHAR * const wzName, con
    }
 
    return hr;
+#else 
+   return 0L;
+#endif
 }
 
 
 HRESULT PinTable::SaveInfo(IStorage* pstg, HCRYPTHASH hcrypthash)
 {
+#ifndef __APPLE__
    WriteInfoValue(pstg, L"TableName", m_szTableName, hcrypthash);
    WriteInfoValue(pstg, L"AuthorName", m_szAuthor, hcrypthash);
    WriteInfoValue(pstg, L"TableVersion", m_szVersion, hcrypthash);
@@ -2877,6 +2979,7 @@ HRESULT PinTable::SaveInfo(IStorage* pstg, HCRYPTHASH hcrypthash)
    }
 
    pstg->Commit(STGC_DEFAULT);
+#endif
 
    return S_OK;
 }
@@ -2884,6 +2987,7 @@ HRESULT PinTable::SaveInfo(IStorage* pstg, HCRYPTHASH hcrypthash)
 
 HRESULT PinTable::SaveCustomInfo(IStorage* pstg, IStream *pstmTags, HCRYPTHASH hcrypthash)
 {
+#ifndef __APPLE__
    BiffWriter bw(pstmTags, hcrypthash);
 
    for (size_t i = 0; i < m_vCustomInfoTag.size(); i++)
@@ -2903,6 +3007,7 @@ HRESULT PinTable::SaveCustomInfo(IStorage* pstg, IStream *pstmTags, HCRYPTHASH h
    }
 
    pstg->Commit(STGC_DEFAULT);
+#endif
 
    return S_OK;
 }
@@ -2918,13 +3023,27 @@ HRESULT PinTable::ReadInfoValue(IStorage* pstg, const WCHAR * const wzName, char
       STATSTG ss;
       pstm->Stat(&ss, STATFLAG_NONAME);
 
+#ifndef __APPLE__
       const int len = ss.cbSize.LowPart / (DWORD)sizeof(WCHAR);
       WCHAR * const wzT = new WCHAR[len + 1];
+#else
+      const int len = ss.cbSize.LowPart / 2;
+      WCHAR * const wzT = new WCHAR[len + 1];
+      memset(wzT, 0, sizeof(WCHAR) * (len + 1));
+#endif
       *pszValue = new char[len + 1];
 
       ULONG read;
       BiffReader br(pstm, NULL, NULL, 0, hcrypthash, NULL);
+#ifndef __APPLE__
       br.ReadBytes(wzT, ss.cbSize.LowPart, &read);
+#else
+      char* ptr = (char*)wzT;
+      for (int index = 0; index < len; index++) {
+         br.ReadBytes(ptr, 2, &read);
+         ptr += sizeof(WCHAR);
+      }
+#endif
       wzT[len] = L'\0';
 
       WideCharToMultiByteNull(CP_ACP, 0, wzT, -1, *pszValue, len + 1, nullptr, nullptr);
@@ -3303,6 +3422,7 @@ HRESULT PinTable::LoadGameFromStorage(IStorage *pstgRoot)
 {
    ProfileLog("LoadGameFromStorage"s);
 
+#ifndef __APPLE__
    RECT rc;
    ::SendMessage(m_vpinball->m_hwndStatusBar, SB_GETRECT, 2, (size_t)&rc);
 
@@ -3317,12 +3437,14 @@ HRESULT PinTable::LoadGameFromStorage(IStorage *pstgRoot)
    const LocalString ls(IDS_LOADING);
    m_vpinball->SetActionCur(ls.m_szbuffer);
    m_vpinball->SetCursorCur(nullptr, IDC_WAIT);
+#endif
 
    HCRYPTPROV hcp = NULL;
    HCRYPTHASH hch = NULL;
    HCRYPTHASH hchkey = NULL;
    HCRYPTKEY  hkey = NULL;
 
+#ifndef __APPLE__
    ///////// Begin MAC
    int foo;
 
@@ -3352,6 +3474,7 @@ HRESULT PinTable::LoadGameFromStorage(IStorage *pstgRoot)
    // We need to figure out the file verison before we can create the key
 
    ////////////// End MAC
+#endif
 
    int loadfileversion = CURRENT_FILE_FORMAT_VERSION;
 
@@ -3368,7 +3491,9 @@ HRESULT PinTable::LoadGameFromStorage(IStorage *pstgRoot)
          {
             ULONG read;
             hr = pstmVersion->Read(&loadfileversion, sizeof(int), &read);
+#ifndef __APPLE__
             CryptHashData(hch, (BYTE *)&loadfileversion, sizeof(int), 0);
+#endif
             pstmVersion->Release();
             if (loadfileversion > CURRENT_FILE_FORMAT_VERSION)
             {
@@ -3385,8 +3510,10 @@ HRESULT PinTable::LoadGameFromStorage(IStorage *pstgRoot)
                */
             }
 
+#ifndef __APPLE__
             // Create a block cipher session key based on the hash of the password.
             CryptDeriveKey(hcp, CALG_RC2, hchkey, (loadfileversion == 600) ? CRYPT_EXPORTABLE : (CRYPT_EXPORTABLE | 0x00280000), &hkey);
+#endif
          }
 
          IStorage* pstgInfo;
@@ -3415,7 +3542,9 @@ HRESULT PinTable::LoadGameFromStorage(IStorage *pstgRoot)
 
             const int ctotalitems = csubobj + csounds + ctextures + cfonts;
             int cloadeditems = 0;
+#ifndef __APPLE__
             ::SendMessage(hwndProgressBar, PBM_SETRANGE, 0, MAKELPARAM(0, ctotalitems));
+#endif
 
             for (int i = 0; i < csubobj; i++)
             {
@@ -3443,7 +3572,9 @@ HRESULT PinTable::LoadGameFromStorage(IStorage *pstgRoot)
                   //hr = piedit->InitPostLoad();
                }
                cloadeditems++;
+#ifndef __APPLE__
                ::SendMessage(hwndProgressBar, PBM_SETPOS, cloadeditems, 0);
+#endif
             }
 
             ProfileLog("GameItem"s);
@@ -3461,7 +3592,9 @@ HRESULT PinTable::LoadGameFromStorage(IStorage *pstgRoot)
                   pstmItem = nullptr;
                }
                cloadeditems++;
+#ifndef __APPLE__
                ::SendMessage(hwndProgressBar, PBM_SETPOS, cloadeditems, 0);
+#endif
             }
 
             ProfileLog("Sound"s);
@@ -3483,10 +3616,11 @@ HRESULT PinTable::LoadGameFromStorage(IStorage *pstgRoot)
                      {
                         hr = LoadImageFromStream(pstmItem, i, loadfileversion, false);
                         if (FAILED(hr))
-                           return;
+                           return hr;
                         pstmItem->Release();
                         pstmItem = nullptr;
                      }
+                     return hr;
                   });
                   cloadeditems++;
                }
@@ -3529,7 +3663,9 @@ HRESULT PinTable::LoadGameFromStorage(IStorage *pstgRoot)
 
             ProfileLog("Image"s);
 
+#ifndef __APPLE__
             ::SendMessage(hwndProgressBar, PBM_SETPOS, cloadeditems, 0);
+#endif
 
             for (int i = 0; i < cfonts; i++)
             {
@@ -3547,7 +3683,9 @@ HRESULT PinTable::LoadGameFromStorage(IStorage *pstgRoot)
                   pstmItem = nullptr;
                }
                cloadeditems++;
+#ifndef __APPLE__
                ::SendMessage(hwndProgressBar, PBM_SETPOS, cloadeditems, 0);
+#endif
             }
 
             ProfileLog("Font"s);
@@ -3570,7 +3708,9 @@ HRESULT PinTable::LoadGameFromStorage(IStorage *pstgRoot)
                   pstmItem = nullptr;
                }
                cloadeditems++;
+#ifndef __APPLE__
                ::SendMessage(hwndProgressBar, PBM_SETPOS, cloadeditems, 0);
+#endif
             }
 
             ProfileLog("Collection"s);
@@ -3596,6 +3736,7 @@ HRESULT PinTable::LoadGameFromStorage(IStorage *pstgRoot)
                ULONG read;
                hr = pstmVersion->Read(&hashvalOld, HASHLENGTH, &read);
 
+#ifndef __APPLE__
                foo = CryptGetHashParam(hch, HP_HASHSIZE, hashval, &hashlen, 0);
 
                hashlen = 256;
@@ -3608,8 +3749,10 @@ HRESULT PinTable::LoadGameFromStorage(IStorage *pstgRoot)
                foo = CryptDestroyKey(hkey);
 
                foo = CryptReleaseContext(hcp, 0);
+#endif
                pstmVersion->Release();
 
+#ifndef __APPLE__
                for (int i = 0; i < HASHLENGTH; i++)
                {
                   if (hashval[i] != hashvalOld[i])
@@ -3617,6 +3760,7 @@ HRESULT PinTable::LoadGameFromStorage(IStorage *pstgRoot)
                      hr = E_ACCESSDENIED;
                   }
                }
+#endif
             }
             else
             {
@@ -3652,14 +3796,18 @@ HRESULT PinTable::LoadGameFromStorage(IStorage *pstgRoot)
       m_pbTempScreenshot = nullptr;
    }
 
+#ifndef __APPLE__
    DestroyWindow(hwndProgressBar);
+#endif
    //DestroyWindow(hwndProgressDialog);
 
    pstgRoot->Release();
 
    m_vpinball->SetActionCur(string());
 
+#ifndef __APPLE__
    m_vpinball->GetLayersListDialog()->ClearList();
+#endif
    // copy all elements into their layers
    for (int i = 0; i < MAX_LAYERS; i++)
    {
@@ -3674,7 +3822,9 @@ HRESULT PinTable::LoadGameFromStorage(IStorage *pstgRoot)
              m_layer[i].push_back(piedit);
              if (psel->m_layerName.empty())
                  psel->m_layerName = "Layer_" + std::to_string(i+1);
+#ifndef __APPLE__
              m_vpinball->GetLayersListDialog()->AddLayer(psel->m_layerName, piedit);
+#endif
          }
       }
    }
@@ -3995,6 +4145,7 @@ bool PinTable::LoadToken(const int id, BiffReader * const pbr)
 
 bool PinTable::ExportSound(PinSound * const pps, const char * const szfilename)
 {
+#ifndef __APPLE__
    if(!pps->IsWav2())
    {
       FILE* f;
@@ -4047,12 +4198,14 @@ bool PinTable::ExportSound(PinSound * const pps, const char * const szfilename)
    }
    else
       m_mdiTable->MessageBox("Can not Open/Create Sound file!", "Visual Pinball", MB_ICONERROR);
+#endif
 
    return false;
 }
 
 void PinTable::ReImportSound(const HWND hwndListView, PinSound * const pps, const string& filename)
 {
+#ifndef __APPLE__
    PinSound * const ppsNew = m_vpinball->m_ps.LoadFile(filename);
 
    if (ppsNew == nullptr)
@@ -4089,11 +4242,13 @@ void PinTable::ReImportSound(const HWND hwndListView, PinSound * const pps, cons
    pps->m_volume = volume;
    pps->m_outputTarget = outputTarget;
    pps->m_szName = szName;
+#endif
 }
 
 
 void PinTable::ImportSound(const HWND hwndListView, const string& szfilename)
 {
+#ifndef __APPLE__
    PinSound * const pps = m_vpinball->m_ps.LoadFile(szfilename);
 
    if (pps == nullptr)
@@ -4104,18 +4259,22 @@ void PinTable::ImportSound(const HWND hwndListView, const string& szfilename)
    const int index = AddListSound(hwndListView, pps);
 
    ListView_SetItemState(hwndListView, index, LVIS_SELECTED, LVIS_SELECTED);
+#endif
 }
 
 void PinTable::ListSounds(HWND hwndListView)
 {
+#ifndef __APPLE__
 	ListView_DeleteAllItems(hwndListView);
 	for (size_t i = 0; i < m_vsound.size(); i++)
 		AddListSound(hwndListView, m_vsound[i]);
+#endif
 }
 
 
 int PinTable::AddListSound(HWND hwndListView, PinSound * const pps)
 {
+#ifndef __APPLE__
    LVITEM lvitem;
    lvitem.mask = LVIF_DI_SETITEM | LVIF_TEXT | LVIF_PARAM;
    lvitem.iItem = 0;
@@ -4147,6 +4306,9 @@ int PinTable::AddListSound(HWND hwndListView, PinSound * const pps)
    ListView_SetItemText(hwndListView, index, 5, textBuf);
 
    return index;
+#else
+   return 0L;
+#endif
 }
 
 void PinTable::RemoveSound(PinSound * const pps)
@@ -4158,6 +4320,7 @@ void PinTable::RemoveSound(PinSound * const pps)
 
 void PinTable::ImportFont(HWND hwndListView, const string& filename)
 {
+#ifndef __APPLE__
    PinFont * const ppb = new PinFont();
 
    ppb->ReadFromFile(filename);
@@ -4172,6 +4335,7 @@ void PinTable::ImportFont(HWND hwndListView, const string& filename)
 
       ppb->Register();
    }
+#endif
 }
 
 void PinTable::RemoveFont(PinFont * const ppf)
@@ -4190,6 +4354,7 @@ void PinTable::ListFonts(HWND hwndListView)
 
 int PinTable::AddListBinary(HWND hwndListView, PinBinary *ppb)
 {
+#ifndef __APPLE__
    LVITEM lvitem;
    lvitem.mask = LVIF_DI_SETITEM | LVIF_TEXT | LVIF_PARAM;
    lvitem.iItem = 0;
@@ -4202,6 +4367,9 @@ int PinTable::AddListBinary(HWND hwndListView, PinBinary *ppb)
    ListView_SetItemText(hwndListView, index, 1, (LPSTR)ppb->m_szPath.c_str());
 
    return index;
+#else
+   return 0L;
+#endif
 }
 
 void PinTable::NewCollection(const HWND hwndListView, const bool fromSelection)
@@ -4239,7 +4407,9 @@ void PinTable::NewCollection(const HWND hwndListView, const bool fromSelection)
 
    const int index = AddListCollection(hwndListView, pcol);
 
+#ifndef __APPLE__
    ListView_SetItemState(hwndListView, index, LVIS_SELECTED, LVIS_SELECTED);
+#endif
 
    m_vcollection.push_back(pcol);
    m_pcv->AddItem((IScriptable *)pcol, false);
@@ -4247,6 +4417,7 @@ void PinTable::NewCollection(const HWND hwndListView, const bool fromSelection)
 
 int PinTable::AddListCollection(HWND hwndListView, CComObject<Collection> *pcol)
 {
+#ifndef __APPLE__
    char szT[sizeof(pcol->m_wzName)/sizeof(pcol->m_wzName[0])];
    WideCharToMultiByteNull(CP_ACP, 0, pcol->m_wzName, -1, szT, sizeof(szT), nullptr, nullptr);
 
@@ -4263,6 +4434,9 @@ int PinTable::AddListCollection(HWND hwndListView, CComObject<Collection> *pcol)
    sprintf_s(buf, sizeof(buf), "%i", pcol->m_visel.size());
    ListView_SetItemText(hwndListView, index, 1, buf);
    return index;
+#else
+   return 0L;
+#endif
 }
 
 void PinTable::ListCollections(HWND hwndListView)
@@ -4279,9 +4453,11 @@ void PinTable::ListCollections(HWND hwndListView)
 
 void PinTable::RemoveCollection(CComObject<Collection> *pcol)
 {
+#ifndef __APPLE__
    m_pcv->RemoveItem((IScriptable *)pcol);
    m_vcollection.find_erase(pcol);
    pcol->Release();
+#endif
 }
 
 void PinTable::MoveCollectionUp(CComObject<Collection> *pcol)
@@ -4358,6 +4534,7 @@ void PinTable::MoveCollectionDown(CComObject<Collection> *pcol)
 
 void PinTable::SetCollectionName(Collection *pcol, const char *szName, HWND hwndList, int index)
 {
+#ifndef __APPLE__
    WCHAR wzT[MAXSTRING];
    MultiByteToWideCharNull(CP_ACP, 0, szName, -1, wzT, MAXSTRING);
    if (m_pcv->ReplaceName((IScriptable *)pcol, wzT) == S_OK)
@@ -4366,6 +4543,7 @@ void PinTable::SetCollectionName(Collection *pcol, const char *szName, HWND hwnd
          ListView_SetItemText(hwndList, index, 0, (char*)szName);
       WideStrNCopy(wzT, pcol->m_wzName, MAXNAMEBUFFER);
    }
+#endif
 }
 
 void PinTable::SetZoom(float zoom)
@@ -4394,6 +4572,7 @@ void PinTable::GetViewRect(FRect * const pfrect) const
 
 void PinTable::SetMyScrollInfo()
 {
+#ifndef __APPLE__
    FRect frect;
    GetViewRect(&frect);
 
@@ -4421,6 +4600,7 @@ void PinTable::SetMyScrollInfo()
    si.nPos = (int)(rgv[0].y);
 
    SetScrollInfo(SB_VERT, si, fTrue);
+#endif
 }
 
 void PinTable::FireKeyEvent(int dispid, int keycode)
@@ -4449,6 +4629,7 @@ void PinTable::FireKeyEvent(int dispid, int keycode)
 
 void PinTable::DoLeftButtonDown(int x, int y, bool zoomIn)
 {
+#ifndef __APPLE__
    const int ksshift = GetKeyState(VK_SHIFT);
    const int ksctrl = GetKeyState(VK_CONTROL);
 
@@ -4494,10 +4675,12 @@ void PinTable::DoLeftButtonDown(int x, int y, bool zoomIn)
             pisel2->OnLButtonDown(x, y);
       }
    }
+#endif
 }
 
 void PinTable::OnLeftButtonUp(int x, int y)
 {
+#ifndef __APPLE__
    if (!m_dragging) // Not doing band select
    {
       for (int i = 0; i < m_vmultisel.size(); i++)
@@ -4516,10 +4699,12 @@ void PinTable::OnLeftButtonUp(int x, int y)
    {
       OnLButtonUp(x, y);
    }
+#endif
 }
 
 void PinTable::OnRightButtonDown(int x, int y)
 {
+#ifndef __APPLE__
    OnLeftButtonUp(x, y); //corrects issue with left mouse button being in 'stuck down' position on a control point or object - BDS
 
    const int ks = GetKeyState(VK_CONTROL);
@@ -4554,10 +4739,12 @@ void PinTable::OnRightButtonDown(int x, int y)
       // update the selection
       AddMultiSel(hit, false, true, false);
    }
+#endif
 }
 
 void PinTable::FillCollectionContextMenu(CMenu &mainMenu, CMenu &colSubMenu, ISelect *psel)
 {
+#ifndef __APPLE__
     const LocalString ls16(IDS_TO_COLLECTION);
     mainMenu.AppendMenu(MF_POPUP | MF_STRING, (size_t)colSubMenu.GetHandle(), ls16.m_szbuffer);
 
@@ -4600,10 +4787,12 @@ void PinTable::FillCollectionContextMenu(CMenu &mainMenu, CMenu &colSubMenu, ISe
         for (size_t i = 0; i < allIndices.size(); i++)
             colSubMenu.CheckMenuItem(0x40000 + allIndices[i], MF_CHECKED);
     }
+#endif
 }
 
 void PinTable::FillLayerContextMenu(CMenu &mainMenu, CMenu &layerSubMenu, ISelect *psel) 
 {
+#ifndef __APPLE__
    const LocalString ls16(IDS_ASSIGN_TO_LAYER2);
    mainMenu.AppendMenu(MF_POPUP | MF_STRING, (size_t)layerSubMenu.GetHandle(), ls16.m_szbuffer);
    vector<string> layerNames = g_pvp->GetLayersListDialog()->GetAllLayerNames();
@@ -4615,10 +4804,12 @@ void PinTable::FillLayerContextMenu(CMenu &mainMenu, CMenu &layerSubMenu, ISelec
       if (i == NUM_ASSIGN_LAYERS)
         break;
    }
+#endif
 }
 
 void PinTable::DoContextMenu(int x, int y, const int menuid, ISelect *psel)
 {
+#ifndef __APPLE__
    POINT pt;
    pt.x = x;
    pt.y = y;
@@ -4730,6 +4921,7 @@ void PinTable::DoContextMenu(int x, int y, const int menuid, ISelect *psel)
 
    if (menuid != -1)
        mainMenu.DestroyMenu();
+#endif
 }
 
 const char *PinTable::GetElementName(IEditable *pedit) const
@@ -4775,6 +4967,7 @@ bool PinTable::FMutilSelLocked()
 
 void PinTable::DoCommand(int icmd, int x, int y)
 {
+#ifndef __APPLE__
    if (((icmd & 0x000FFFFF) >= 0x40000) && ((icmd & 0x000FFFFF) < 0x40020))
    {
       UpdateCollection(icmd & 0x000000FF);
@@ -4821,6 +5014,7 @@ void PinTable::DoCommand(int icmd, int x, int y)
        case ID_WALLMENU_SCALE: DialogBoxParam(m_vpinball->theInstance, MAKEINTRESOURCE(IDD_SCALE), m_vpinball->GetHwnd(), ScaleProc, (size_t)(ISelect *)this); break;
        case ID_WALLMENU_TRANSLATE: DialogBoxParam(m_vpinball->theInstance, MAKEINTRESOURCE(IDD_TRANSLATE), m_vpinball->GetHwnd(), TranslateProc, (size_t)(ISelect *)this); break;
    }
+#endif
 }
 
 void PinTable::UpdateCollection(const int index)
@@ -4908,6 +5102,7 @@ void PinTable::LockElements()
 
 LRESULT PinTable::WndProc(UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
+#ifndef __APPLE__
     switch (uMsg)
     {
         case WM_SETCURSOR:
@@ -5074,6 +5269,9 @@ LRESULT PinTable::WndProc(UINT uMsg, WPARAM wParam, LPARAM lParam)
             break;
     }
     return WndProcDefault(uMsg, wParam, lParam);
+#else
+   return 0L;
+#endif
 }
 
 void PinTable::FlipY(const Vertex2D& pvCenter)
@@ -5145,6 +5343,7 @@ void PinTable::PutCenter(const Vertex2D& pv)
 
 void PinTable::OnRightButtonUp(int x, int y)
 {
+#ifndef __APPLE__
    GetSelectedItem()->OnRButtonUp(x, y);
 
    const int ks = GetKeyState(VK_CONTROL);
@@ -5165,10 +5364,12 @@ void PinTable::OnRightButtonUp(int x, int y)
          DoContextMenu(x, y, IDR_TABLEMENU, this);
       }
    }
+#endif
 }
 
 void PinTable::DoMouseMove(int x, int y)
 {
+#ifndef __APPLE__
    const Vertex2D v = TransformPoint(x, y);
 
    m_vpinball->SetPosCur(v.x, v.y);
@@ -5180,6 +5381,7 @@ void PinTable::DoMouseMove(int x, int y)
    }
    else
       OnMouseMove(x, y);
+#endif
 }
 
 void PinTable::OnLeftDoubleClick(int x, int y)
@@ -5190,6 +5392,7 @@ void PinTable::OnLeftDoubleClick(int x, int y)
 
 void PinTable::ExportBlueprint()
 {
+#ifndef __APPLE__
    //bool saveAs = true;
    //if (saveAs)
    //{
@@ -5315,6 +5518,7 @@ void PinTable::ExportBlueprint()
 #if 1
    FreeImage_Unload(dib);
 #endif
+#endif
 }
 
 void PinTable::ExportMesh(ObjLoader& loader)
@@ -5376,6 +5580,7 @@ void PinTable::ExportMesh(ObjLoader& loader)
 
 void PinTable::ExportTableMesh()
 {
+#ifndef __APPLE__
    char szObjFileName[MAXSTRING];
    strncpy_s(szObjFileName, m_szFileName.c_str(), sizeof(szObjFileName)-1);
    const size_t idx = m_szFileName.find_last_of('.');
@@ -5410,10 +5615,12 @@ void PinTable::ExportTableMesh()
    }
    loader.ExportEnd();
    m_vpinball->MessageBox("Export finished!", "Info", MB_OK | MB_ICONEXCLAMATION);
+#endif
 }
 
 void PinTable::ImportBackdropPOV(const string& filename)
 {
+#ifndef __APPLE__
     vector<string> szFileName;
     bool oldFormatLoaded = false;
 
@@ -5595,10 +5802,12 @@ void PinTable::ImportBackdropPOV(const string& filename)
     xmlDoc.clear();
     // update properties UI
     m_vpinball->SetPropSel(m_vmultisel); 
+#endif
 }
 
 void PinTable::ExportBackdropPOV(const string& filename)
 {
+#ifndef __APPLE__
 	string povFileName;
 	if (filename.empty())
 	{
@@ -5840,6 +6049,7 @@ void PinTable::ExportBackdropPOV(const string& filename)
         ShowError("Error exporting POV settings!");
     }
     xmlDoc.clear();
+#endif
 }
 
 void PinTable::SelectItem(IScriptable *piscript)
@@ -5922,8 +6132,10 @@ void PinTable::Undo()
    SetDirtyDraw();
    SetMyScrollInfo();
 
+#ifndef __APPLE__
    if (m_searchSelectDlg.IsWindow())
       m_searchSelectDlg.Update();
+#endif
 }
 
 void PinTable::Uncreate(IEditable *pie)
@@ -5995,6 +6207,7 @@ void PinTable::RestoreBackup()
 
 void PinTable::Copy(int x, int y)
 {
+#ifndef __APPLE__
    if (MultiSelIsEmpty()) // Can't copy table
       return;
 
@@ -6033,10 +6246,12 @@ void PinTable::Copy(int x, int y)
    }
 
    m_vpinball->SetClipboard(&vstm);
+#endif
 }
 
 void PinTable::Paste(const bool atLocation, const int x, const int y)
 {
+#ifndef __APPLE__
    bool error = false;
    int cpasted = 0;
 
@@ -6111,6 +6326,7 @@ void PinTable::Paste(const bool atLocation, const int x, const int y)
       const LocalString ls(IDS_NOPASTEINVIEW);
       m_mdiTable->MessageBox(ls.m_szbuffer, "Visual Pinball", 0);
    }
+#endif
 }
 
 void PinTable::UIRenderPass1(Sur * const psur)
@@ -6268,7 +6484,9 @@ void PinTable::AddMultiSel(ISelect *psel, const bool add, const bool update, con
 
    if (update)
    {
+#ifndef __APPLE__
        m_vpinball->SetPropSel(m_vmultisel);
+#endif
        m_vmultisel[0].UpdateStatusBarInfo();
    }
 
@@ -6282,18 +6500,23 @@ void PinTable::AddMultiSel(ISelect *psel, const bool add, const bool update, con
             if (!prim->m_mesh.m_animationFrames.empty())
                 info += " (animated " + std::to_string((unsigned long long)prim->m_mesh.m_animationFrames.size() - 1) + " frames)";
         }
+#ifndef __APPLE__
         m_vpinball->SetStatusBarElementInfo(info);
         m_pcv->SelectItem(piSelect->GetIEditable()->GetScriptable());
+#endif
     }
 }
 
 void PinTable::RefreshProperties()
 {
+#ifndef __APPLE__
     m_vpinball->SetPropSel(m_vmultisel);
+#endif
 }
 
 void PinTable::OnDelete()
 {
+#ifndef __APPLE__
    vector<ISelect*> m_vseldelete;
    m_vseldelete.reserve(m_vmultisel.size());
 
@@ -6345,10 +6568,12 @@ void PinTable::OnDelete()
       m_searchSelectDlg.Update();
 
    SetDirtyDraw();
+#endif
 }
 
 void PinTable::OnKeyDown(int key)
 {
+#ifndef __APPLE__
    const int shift = GetKeyState(VK_SHIFT) & 0x8000;
    //const int ctrl = GetKeyState(VK_CONTROL) & 0x8000;
    //const int alt = GetKeyState(VK_MENU) & 0x8000;
@@ -6398,10 +6623,12 @@ void PinTable::OnKeyDown(int key)
    }
    break;
    }
+#endif
 }
 
 void PinTable::UseTool(int x, int y, int tool)
 {
+#ifndef __APPLE__
    const Vertex2D v = TransformPoint(x, y);
 
    const ItemTypeEnum type = EditableRegistry::TypeFromToolID(tool);
@@ -6423,10 +6650,12 @@ void PinTable::UseTool(int x, int y, int tool)
    }
 
    m_vpinball->ParseCommand(IDC_SELECT, false);
+#endif
 }
 
 Vertex2D PinTable::TransformPoint(int x, int y) const
 {
+#ifndef __APPLE__
    const CRect rc = m_mdiTable->GetClientRect();
 
    const HitSur phs(nullptr, m_zoom, m_offset.x, m_offset.y, rc.right - rc.left, rc.bottom - rc.top, 0, 0, nullptr);
@@ -6434,10 +6663,14 @@ Vertex2D PinTable::TransformPoint(int x, int y) const
    const Vertex2D result = phs.ScreenToSurface(x, y);
 
    return result;
+#else
+   return Vertex2D();
+#endif
 }
 
 void PinTable::OnLButtonDown(int x, int y)
 {
+#ifndef __APPLE__
    const Vertex2D v = TransformPoint(x, y);
 
    m_rcDragRect.left = v.x;
@@ -6450,10 +6683,12 @@ void PinTable::OnLButtonDown(int x, int y)
    SetCapture();
 
    SetDirtyDraw();
+#endif
 }
 
 void PinTable::OnLButtonUp(int x, int y)
 {
+#ifndef __APPLE__
    if (m_dragging)
    {
       m_dragging = false;
@@ -6498,6 +6733,7 @@ void PinTable::OnLButtonUp(int x, int y)
       }
    }
    SetDirtyDraw();
+#endif
 }
 
 void PinTable::OnMouseMove(int x, int y)
@@ -6639,7 +6875,6 @@ void PinTable::StopAllSounds()
    m_vpinball->m_ps.StopCopiedWavs();
 }
 
-
 STDMETHODIMP PinTable::PlaySound(BSTR bstr, int loopcount, float volume, float pan, float randompitch, int pitch, VARIANT_BOOL usesame, VARIANT_BOOL restart, float front_rear_fade)
 {
    char szName[MAXSTRING];
@@ -6677,7 +6912,6 @@ STDMETHODIMP PinTable::PlaySound(BSTR bstr, int loopcount, float volume, float p
    return S_OK;
 }
 
-
 Texture* PinTable::GetImage(const string &szName) const
 {
    if (szName.empty())
@@ -6703,6 +6937,7 @@ Texture* PinTable::GetImage(const string &szName) const
 
 void PinTable::ReImportImage(Texture * const ppi, const string& filename)
 {
+#ifndef __APPLE__
    const string szextension = ExtensionFromFilename(filename);
 
    const bool binary = !!lstrcmpi(szextension.c_str(), "bmp");
@@ -6733,11 +6968,13 @@ void PinTable::ReImportImage(Texture * const ppi, const string& filename)
    ppi->m_pdsBuffer = tex;
 
    ppi->m_szPath = filename;
+#endif
 }
 
 
 bool PinTable::ExportImage(const Texture * const ppi, const char * const szfilename)
 {
+#ifndef __APPLE__
    if (ppi->m_ppb != nullptr)
       return ppi->m_ppb->WriteToFile(szfilename);
    else if (ppi->m_pdsBuffer != nullptr)
@@ -6834,6 +7071,7 @@ bool PinTable::ExportImage(const Texture * const ppi, const char * const szfilen
 #endif
       return true;
    }
+#endif
    return false;
 }
 
@@ -6841,6 +7079,7 @@ bool PinTable::ExportImage(const Texture * const ppi, const char * const szfilen
 
 void PinTable::ImportImage(HWND hwndListView, const string& filename)
 {
+#ifndef __APPLE__
    Texture * const ppi = new Texture();
 
    ReImportImage(ppi, filename);
@@ -6879,6 +7118,7 @@ void PinTable::ImportImage(HWND hwndListView, const string& filename)
    const int index = AddListImage(hwndListView, ppi);
 
    ListView_SetItemState(hwndListView, index, LVIS_SELECTED, LVIS_SELECTED);
+#endif
 }
 
 void PinTable::ListImages(HWND hwndListView)
@@ -6889,6 +7129,7 @@ void PinTable::ListImages(HWND hwndListView)
 
 int PinTable::AddListImage(HWND hwndListView, Texture * const ppi)
 {
+#ifndef __APPLE__
    char sizeString[MAXTOKEN];
    constexpr char usedStringYes[] = "X";
    constexpr char usedStringNo[] = " ";
@@ -7064,6 +7305,9 @@ int PinTable::AddListImage(HWND hwndListView, Texture * const ppi)
        }//for
    }//else
    return index;
+#else
+   return 0L;
+#endif
 }
 
 void PinTable::RemoveImage(Texture * const ppi)
@@ -7216,6 +7460,7 @@ void PinTable::UpdateDbgMaterial()
 
 int PinTable::AddListMaterial(HWND hwndListView, Material * const pmat)
 {
+#ifndef __APPLE__
    constexpr char usedStringYes[] = "X";
    constexpr char usedStringNo[] = " ";
 
@@ -7340,6 +7585,9 @@ int PinTable::AddListMaterial(HWND hwndListView, Material * const pmat)
       }//for
    }
    return index;
+#else
+   return 0L;
+#endif
 }
 
 void PinTable::RemoveMaterial(Material * const pmat)
@@ -7457,6 +7705,7 @@ void PinTable::ListCustomInfo(HWND hwndListView)
 
 int PinTable::AddListItem(HWND hwndListView, const string& szName, const string& szValue1, LPARAM lparam)
 {
+#ifndef __APPLE__
    LVITEM lvitem;
    lvitem.mask = LVIF_DI_SETITEM | LVIF_TEXT | LVIF_PARAM;
    lvitem.iItem = 0;
@@ -7469,6 +7718,9 @@ int PinTable::AddListItem(HWND hwndListView, const string& szName, const string&
    ListView_SetItemText(hwndListView, index, 1, (char*)szValue1.c_str());
 
    return index;
+#else
+   return 0L;
+#endif
 }
 
 HRESULT PinTable::LoadImageFromStream(IStream *pstm, size_t idx, int version, bool resize_on_low_mem)
@@ -8594,11 +8846,13 @@ bool PinTable::GetShowFSS() const
 
 void PinTable::SetShowFSS(const bool enable)
 {
+#ifndef __APPLE__
    m_BG_enable_FSS = enable;
    if (m_BG_enable_FSS)
       m_BG_current_set = FULL_SINGLE_SCREEN;
    else
       LoadValue(regKey[RegName::Player], "BGSet"s, m_BG_current_set);
+#endif
 }
 
 STDMETHODIMP PinTable::get_ShowFSS(VARIANT_BOOL *pVal)
@@ -9314,6 +9568,7 @@ STDMETHODIMP PinTable::ImportPhysics()
 
 void PinTable::ImportVPP(const string& filename)
 {
+#ifndef __APPLE__
    xml_document<> xmlDoc;
    float FlipperPhysicsMass, FlipperPhysicsStrength, FlipperPhysicsElasticity, FlipperPhysicsScatter, FlipperPhysicsTorqueDamping, FlipperPhysicsTorqueDampingAngle, FlipperPhysicsReturnStrength, FlipperPhysicsElasticityFalloff, FlipperPhysicsFriction, FlipperPhysicsCoilRampUp;
    try
@@ -9539,10 +9794,12 @@ void PinTable::ImportVPP(const string& filename)
          flipper->put_EOSTorque(FlipperPhysicsTorqueDamping);
          flipper->put_EOSTorqueAngle(FlipperPhysicsTorqueDampingAngle);
       }
+#endif
 }
 
 STDMETHODIMP PinTable::ExportPhysics()
 {
+#ifndef __APPLE__
    bool foundflipper = false;
    size_t i;
    for (i = 0; i < m_vedit.size(); i++)
@@ -9703,6 +9960,7 @@ STDMETHODIMP PinTable::ExportPhysics()
    std::ofstream myfile(ofn.lpstrFile);
    myfile << xmlDoc;
    myfile.close();
+#endif
 
    return S_OK;
 }
@@ -10058,14 +10316,17 @@ void PinTable::OnInitialUpdate()
 {
     ProfileLog("PinTable OnInitialUpdate"s);
 
+#ifndef __APPLE__
     BeginAutoSaveCounter();
     SetWindowText(m_szFileName.c_str());
     SetCaption(m_szTitle);
     m_vpinball->SetEnableMenuItems();
+#endif
 }
 
 BOOL PinTable::OnCommand(WPARAM wparam, LPARAM lparam)
 {
+#ifndef __APPLE__
     UNREFERENCED_PARAMETER(lparam);
 
     switch (LOWORD(wparam))
@@ -10095,6 +10356,7 @@ BOOL PinTable::OnCommand(WPARAM wparam, LPARAM lparam)
             return TRUE;
         }
     }
+#endif
     return FALSE;
 }
 
@@ -10105,6 +10367,7 @@ BOOL PinTable::OnEraseBkgnd(CDC& dc)
 
 void PinTable::SetMouseCursor()
 {
+#ifndef __APPLE__
     HINSTANCE hinst = m_vpinball->theInstance;
     static int oldTool = -1;
 
@@ -10136,10 +10399,12 @@ void PinTable::SetMouseCursor()
         SetCursor(hcursor);
         oldTool = m_vpinball->m_ToolCur;
     }
+#endif
 }
 
 void PinTable::OnLeftButtonDown(const short x, const short y)
 {
+#ifndef __APPLE__
     if ((m_vpinball->m_ToolCur == IDC_SELECT) || (m_vpinball->m_ToolCur == ID_TABLE_MAGNIFY))
     {
         DoLeftButtonDown(x, y, true);
@@ -10149,10 +10414,12 @@ void PinTable::OnLeftButtonDown(const short x, const short y)
         UseTool(x, y, m_vpinball->m_ToolCur);
     }
     SetFocus();
+#endif
 }
 
 void PinTable::OnMouseMove(const short x, const short y)
 {
+#ifndef __APPLE__
     const bool middleMouseButtonPressed = ((GetKeyState(VK_MBUTTON) & 0x100) != 0);  //((GetKeyState(VK_MENU) & 0x80000000) != 0);
     if (middleMouseButtonPressed)
     {
@@ -10176,10 +10443,12 @@ void PinTable::OnMouseMove(const short x, const short y)
     DoMouseMove(x, y);
     m_oldMousePos.x = x;
     m_oldMousePos.y = y;
+#endif
 }
 
 void PinTable::OnMouseWheel(const short x, const short y, const short zDelta)
 {
+#ifndef __APPLE__
     const int ksctrl = GetKeyState(VK_CONTROL);
     if ((ksctrl & 0x80000000))
     {
@@ -10200,6 +10469,7 @@ void PinTable::OnMouseWheel(const short x, const short y, const short zDelta)
         SetDirtyDraw();
         SetMyScrollInfo();
     }
+#endif
 }
 
 void PinTable::OnSize()
@@ -10220,10 +10490,12 @@ PinTableMDI::PinTableMDI(VPinball *vpinball)
     m_table->AddRef();
 
     m_table->SetMDITable(this);
+#ifndef __APPLE__
     SetView(*m_table);
 
     //m_menu.LoadMenu(IDR_APPMENU);
     SetHandles(m_vpinball->GetMenu(), nullptr);
+#endif
 }
 
 PinTableMDI::~PinTableMDI()
@@ -10232,14 +10504,16 @@ PinTableMDI::~PinTableMDI()
 
     if (m_table != nullptr)
     {
+#ifndef __APPLE__
         if (m_table->m_searchSelectDlg.IsWindow())
            m_table->m_searchSelectDlg.Destroy();
+#endif
 
         m_table->FVerifySaveToClose();
 
         RemoveFromVectorSingle(m_vpinball->m_vtable, (CComObject<PinTable>*)m_table);
-        m_table->m_pcv->CleanUpScriptEngine();
 
+        m_table->m_pcv->CleanUpScriptEngine();
         m_table->Release();
     }
 }
@@ -10251,6 +10525,7 @@ bool PinTableMDI::CanClose() const
         const LocalString ls1(IDS_SAVE_CHANGES1);
         const LocalString ls2(IDS_SAVE_CHANGES2);
         const string szText = ls1.m_szbuffer/*"Do you want to save the changes you made to '"*/ + m_table->m_szTitle + ls2.m_szbuffer;
+#ifndef __APPLE__
         const int result = MessageBox(szText.c_str(), "Visual Pinball", MB_YESNOCANCEL | MB_DEFBUTTON3 | MB_ICONWARNING);
 
         if (result == IDCANCEL)
@@ -10264,6 +10539,7 @@ bool PinTableMDI::CanClose() const
                 MessageBox(ls3.m_szbuffer, "Visual Pinball", MB_ICONERROR);
             }
         }
+#endif
     }
     return true;
 }
@@ -10282,16 +10558,21 @@ void PinTableMDI::PreCreate(CREATESTRUCT &cs)
 
 int PinTableMDI::OnCreate(CREATESTRUCT &cs)
 {
+#ifndef __APPLE__
     SetWindowText(m_table->m_szTitle.c_str());
     SetIconLarge(IDI_TABLE);
     SetIconSmall(IDI_TABLE);
     return CMDIChild::OnCreate(cs);
+#else
+    return 0;
+#endif
 }
 
 void PinTableMDI::OnClose()
 {
     if(m_vpinball->IsClosing() || CanClose())
     {
+#ifndef __APPLE__
         if(g_pvp->GetNotesDocker() != nullptr)
         {
            g_pvp->GetNotesDocker()->UpdateText();
@@ -10299,11 +10580,13 @@ void PinTableMDI::OnClose()
         }
         m_table->KillTimer(VPinball::TIMER_ID_AUTOSAVE);
         CMDIChild::OnClose();
+#endif
     }
 }
 
 LRESULT PinTableMDI::OnMDIActivate(UINT msg, WPARAM wparam, LPARAM lparam)
 {
+#ifndef __APPLE__
    //wparam holds HWND of the MDI frame that is about to be deactivated
    //lparam holds HWND of the MDI frame that is about to be activated
    if(GetHwnd()==(HWND)lparam)
@@ -10316,6 +10599,9 @@ LRESULT PinTableMDI::OnMDIActivate(UINT msg, WPARAM wparam, LPARAM lparam)
       }
    }
    return CMDIChild::OnMDIActivate(msg, wparam, lparam);
+#else 
+   return 0L;
+#endif
 }
 
 BOOL PinTableMDI::OnEraseBkgnd(CDC& dc)
@@ -10331,8 +10617,10 @@ ProgressDialog::ProgressDialog() : CDialog(IDD_PROGRESS)
 
 BOOL ProgressDialog::OnInitDialog()
 {
+#ifndef __APPLE__
     AttachItem(IDC_PROGRESS2, m_progressBar);
     AttachItem(IDC_STATUSNAME, m_progressName);
+#endif
 
     return TRUE;
 }

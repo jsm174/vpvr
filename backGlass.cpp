@@ -1,11 +1,13 @@
 #include "stdafx.h"
 
-#include <rapidxml_utils.hpp>
+#include <inc/rapidxml_utils.hpp>
 
 #include "backGlass.h"
 #include "RenderDevice.h"
 #include "Shader.h"
+#ifndef __APPLE__
 #include "captureExt.h"
+#endif
 
 //#define WRITE_BACKGLASS_IMAGES
 #ifdef WRITE_BACKGLASS_IMAGES
@@ -68,7 +70,7 @@ static size_t decode_base64(const char* const inData, char* const outData, const
       if (outPos + 2 < outSize) outData[outPos + 2] = (b3 << 6) | (b4);
       outPos += 3;
    }
-   return min(outPos - padding, outSize);
+   return min((outPos - padding), outSize);
 }
 
 //Actual Backglass code
@@ -218,6 +220,7 @@ BackGlass::~BackGlass()
 
 void BackGlass::Render()
 {
+#ifndef __APPLE__
    if (g_pplayer->m_capPUP && capturePUP())
    {
       m_backgroundTexture = m_pd3dDevice->m_texMan.LoadTexture(g_pplayer->m_texPUP, SF_TRILINEAR, SA_CLAMP, SA_CLAMP, false);
@@ -282,6 +285,7 @@ void BackGlass::Render()
    //m_pd3dDevice->SetRenderStateCulling(RenderDevice::CULL_CCW); // not necessary anymore
    m_pd3dDevice->SetRenderState(RenderDevice::ZENABLE, RenderDevice::RS_TRUE);
    m_pd3dDevice->SetRenderState(RenderDevice::ZWRITEENABLE, RenderDevice::RS_TRUE);
+#endif
 }
 
 void BackGlass::GetDMDPos(float& DMDposx, float& DMDposy, float& DMDwidth, float& DMDheight)

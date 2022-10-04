@@ -590,6 +590,7 @@ STDMETHODIMP Flipper::RotateToStart() // return to park, key/button up/released
 
    return S_OK;
 }
+
 void Flipper::RenderDynamic()
 {
    RenderDevice * const pd3dDevice = g_pplayer->m_pin3d.m_pd3dPrimaryDevice;

@@ -1,5 +1,9 @@
 #include "stdafx.h"
+#ifndef __APPLE__
 #include "vpinball.h"
+#else
+#include "vpinball_osx.h"
+#endif
 
 BallEx::BallEx()
 {

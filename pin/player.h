@@ -4,7 +4,7 @@
 #include "quadtree.h"
 #include "Debugger.h"
 #include "typedefs3D.h"
-#include "sdl2/SDL_TTF.h"
+#include <SDL_ttf.h>
 #include "pininput.h"
 
 #define DEFAULT_PLAYER_WIDTH 1024
@@ -85,7 +85,11 @@ static constexpr int regkey_defdik[eCKeys] = {
    DIK_SLASH,
    DIK_SPACE,
    DIK_RETURN,
+#ifndef __APPLE__
    DIK_F11,
+#else
+   DIK_F1,
+#endif
    DIK_O,
    DIK_D,
    DIK_5,
@@ -712,7 +716,9 @@ public:
    bool m_overwriteBallImages;
    Texture *m_ballImage;
    Texture *m_decalImage;
+#ifndef __APPLE__
    DebuggerDialog m_debuggerDialog;
+#endif
 
 private:
 #ifdef ENABLE_SDL
