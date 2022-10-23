@@ -4,7 +4,7 @@
 #include "RenderDevice.h"
 
 #ifdef ENABLE_SDL
-#include <Windows.h>
+#include <windows.h>
 #include <iostream>
 #include <fstream>
 #include <string>
@@ -12,6 +12,10 @@
 #include <regex>
 
 static ShaderTechniques m_bound_technique = ShaderTechniques::SHADER_TECHNIQUE_INVALID;
+#endif
+
+#ifdef __STANDALONE__
+#include <sstream>
 #endif
 
 #if DEBUG_LEVEL_LOG == 0
@@ -1001,14 +1005,14 @@ void Shader::LOG(const int level, const string& fileNameRoot, const string& mess
    if (level <= DEBUG_LEVEL_LOG) {
 #ifdef ENABLE_SDL
       if (!logFile) {
-         string name = Shader::shaderPath;
-         name.append("log\\").append(fileNameRoot).append(".log");
+         string name = Shader::shaderPath + string("log") + PATH_SEPARATOR_CHAR + fileNameRoot + string(".log");
          logFile = new std::ofstream();
 bla:
          logFile->open(name);
+#ifndef __STANDALONE__
          if (!logFile->is_open()) {
-            const wstring wzMkPath = g_pvp->m_wzMyPath + L"glshader";
-            if (_wmkdir(wzMkPath.c_str()) != 0 || _wmkdir((wzMkPath + L"\\log").c_str()) != 0)
+            const wstring wzMkPath = g_pvp->m_wzMyPath + L"glshader" + PATH_SEPARATOR_WCHAR + L"log";
+            if (_wmkdir((wzMkPath).c_str()) != 0)
             {
                 char msg[512];
                 TCHAR full_path[MAX_PATH];
@@ -1019,6 +1023,7 @@ bla:
             else
                 goto bla;
          }
+#endif
       }
       switch (level) {
       case 1:
@@ -1060,13 +1065,16 @@ bool Shader::parseFile(const string& fileNameRoot, const string& fileName, int l
    robin_hood::unordered_map<string, string>::iterator currentElemIt = values.find(parentMode);
    string currentElement = (currentElemIt != values.end()) ? currentElemIt->second : string();
    std::ifstream glfxFile;
-   glfxFile.open(string(Shader::shaderPath).append(fileName), std::ifstream::in);
+   glfxFile.open(Shader::shaderPath + fileName, std::ifstream::in);
    if (glfxFile.is_open())
    {
       string line;
       size_t linenumber = 0;
       while (getline(glfxFile, line))
       {
+#ifdef __STANDALONE__
+         line = std::regex_replace(line, std::regex("\\s+$"), string(""));
+#endif
          linenumber++;
          if (line.compare(0, 4, "////") == 0) {
             string newMode = line.substr(4, line.length() - 4);
@@ -1218,13 +1226,14 @@ Shader::ShaderTechnique* Shader::compileGLShader(const ShaderTechniques techniqu
    }
    if ((WRITE_SHADER_FILES == 2) || ((WRITE_SHADER_FILES == 1) && !success)) {
       std::ofstream shaderCode;
-      shaderCode.open(string(shaderPath).append("log\\").append(shaderCodeName).append(".vert"));
+      string szPath = Shader::shaderPath + string("log") + PATH_SEPARATOR_CHAR + shaderCodeName;
+      shaderCode.open(szPath + string(".vert"));
       shaderCode << vertex;
       shaderCode.close();
-      shaderCode.open(string(shaderPath).append("log\\").append(shaderCodeName).append(".geom"));
+      shaderCode.open(szPath + string(".geom"));
       shaderCode << geometry;
       shaderCode.close();
-      shaderCode.open(string(shaderPath).append("log\\").append(shaderCodeName).append(".frag"));
+      shaderCode.open(szPath + string(".frag"));
       shaderCode << fragment;
       shaderCode.close();
    }
@@ -1382,6 +1391,34 @@ string Shader::analyzeFunction(const string& shaderCodeName, const string& _tech
    return functionCode;
 }
 
+#ifdef __STANDALONE__
+string Shader::preprocessGLShader(const string& shaderCode) {
+   std::istringstream iss(shaderCode);
+   string header;
+   string extensions;
+   string code;
+
+   for (std::string line; std::getline(iss, line); )
+   {
+      if (line.compare(0, 9, "#version ") == 0) {
+#ifndef __APPLE__
+         header.append("#version 310 es\n#define __STANDALONE__\n\n");
+#else
+         header.append("#version 410\n#define __STANDALONE__\n#define __APPLE__\n\n");
+#endif
+      }
+      else if (line.compare(0, 11, "#extension ") == 0) {
+         extensions.append(line).append("\n");
+      }
+      else {
+         code.append(line).append("\n");
+      }
+   }
+
+   return header + extensions + code;
+}
+#endif
+
 bool Shader::Load(const std::string name, const BYTE* code, UINT codeSize)
 {
    m_shaderCodeName = name;
@@ -1391,7 +1428,7 @@ bool Shader::Load(const std::string name, const BYTE* code, UINT codeSize)
    if (!parsing) {
       LOG(1, m_shaderCodeName, "Parsing failed");
       char msg[128];
-      sprintf_s(msg, sizeof(msg), "Fatal Error: Shader parsing of %s failed!", m_shaderCodeName);
+      sprintf_s(msg, sizeof(msg), "Fatal Error: Shader parsing of %s failed!", m_shaderCodeName.c_str());
       ReportError(msg, -1, __FILE__, __LINE__);
       if (logFile)
       {
@@ -1448,6 +1485,9 @@ bool Shader::Load(const std::string name, const BYTE* code, UINT codeSize)
                string vertexShaderCode = vertex;
                vertexShaderCode.append("\n//").append(_technique).append("\n//").append(element[2]).append("\n");
                vertexShaderCode.append(analyzeFunction(m_shaderCodeName, _technique, element[2], values)).append("\0");
+#ifdef __STANDALONE__
+               vertexShaderCode = preprocessGLShader(vertexShaderCode);
+#endif
                string geometryShaderCode;
                if (elem == 5 && element[3].length() > 0)
                {
@@ -1455,9 +1495,15 @@ bool Shader::Load(const std::string name, const BYTE* code, UINT codeSize)
                   geometryShaderCode.append("\n//").append(_technique).append("\n//").append(element[3]).append("\n");
                   geometryShaderCode.append(analyzeFunction(m_shaderCodeName, _technique, element[3], values)).append("\0");
                }
+#ifdef __STANDALONE__
+               geometryShaderCode = preprocessGLShader(geometryShaderCode);
+#endif
                string fragmentShaderCode = fragment;
                fragmentShaderCode.append("\n//").append(_technique).append("\n//").append(element[elem - 1]).append("\n");
                fragmentShaderCode.append(analyzeFunction(m_shaderCodeName, _technique, element[elem - 1], values)).append("\0");
+#ifdef __STANDALONE__
+               fragmentShaderCode = preprocessGLShader(fragmentShaderCode);
+#endif
                ShaderTechnique* build = compileGLShader(technique, m_shaderCodeName, element[0] /*.append("_").append(element[1])*/, vertexShaderCode, geometryShaderCode, fragmentShaderCode);
                if (build != nullptr)
                {
@@ -1467,7 +1513,7 @@ bool Shader::Load(const std::string name, const BYTE* code, UINT codeSize)
                else
                {
                   char msg[128];
-                  sprintf_s(msg, sizeof(msg), "Fatal Error: Shader compilation failed for %s!", m_shaderCodeName);
+                  sprintf_s(msg, sizeof(msg), "Fatal Error: Shader compilation failed for %s!", m_shaderCodeName.c_str());
                   ReportError(msg, -1, __FILE__, __LINE__);
                   if (logFile)
                   {
@@ -1485,7 +1531,7 @@ bool Shader::Load(const std::string name, const BYTE* code, UINT codeSize)
    else {
       LOG(1, m_shaderCodeName, "No techniques found.");
       char msg[128];
-      sprintf_s(msg, sizeof(msg), "Fatal Error: No shader techniques found in %s!", m_shaderCodeName);
+      sprintf_s(msg, sizeof(msg), "Fatal Error: No shader techniques found in %s!", m_shaderCodeName.c_str());
       ReportError(msg, -1, __FILE__, __LINE__);
       if (logFile)
       {

@@ -130,8 +130,6 @@
     <ClCompile Include="glad.c" />
     <ClCompile Include="IndexBuffer.cpp" />
     <ClCompile Include="VertexBuffer.cpp" />
-    <ClCompile Include="ShaderGL.cpp" />
-    <ClCompile Include="ShaderDX9.cpp" />
     <ClCompile Include="Shader.cpp" />
     <ClCompile Include="TextureManager.cpp" />
     <ClCompile Include="backGlass.cpp" />

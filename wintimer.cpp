@@ -18,11 +18,14 @@ static HMODULE hNtDll = nullptr;
 static ULONG win_timer_old_period = -1;
 #endif
 
+#ifndef __STANDALONE__
 static TIMECAPS win_timer_caps;
 static MMRESULT win_timer_result = TIMERR_NOCANDO;
+#endif
 
 void set_lowest_possible_win_timer_resolution()
 {
+#ifndef __STANDALONE__
 	// First crank up the multimedia timer resolution to its max
 	// this gives the system much finer timeslices (usually 1-2ms)
 	win_timer_result = timeGetDevCaps(&win_timer_caps, sizeof(win_timer_caps));
@@ -47,6 +50,7 @@ void set_lowest_possible_win_timer_resolution()
 		}
 	}
 #endif
+#endif
 }
 
 void restore_win_timer_resolution()
@@ -65,26 +69,36 @@ void restore_win_timer_resolution()
 	}
 #endif
 
+#ifndef __STANDALONE__
 	if (win_timer_result == TIMERR_NOERROR)
 	{
 		timeEndPeriod(win_timer_caps.wPeriodMin);
 		win_timer_result = TIMERR_NOCANDO;
 	}
+#endif
 }
 
 //
 
 static unsigned int sTimerInit = 0;
+
 static LARGE_INTEGER TimerFreq;
 static LARGE_INTEGER sTimerStart;
+
+
 
 // call before 1st use of msec,usec or uSleep
 void wintimer_init()
 {
    sTimerInit = 1;
 
+#ifndef __STANDALONE__
    QueryPerformanceFrequency(&TimerFreq);
    QueryPerformanceCounter(&sTimerStart);
+#else
+    TimerFreq.QuadPart = SDL_GetPerformanceFrequency();
+    sTimerStart.QuadPart = SDL_GetPerformanceCounter();
+#endif
 }
 
 unsigned long long usec()
@@ -92,7 +106,11 @@ unsigned long long usec()
    if (sTimerInit == 0) return 0;
 
    LARGE_INTEGER TimerNow;
+#ifndef __STANDALONE__
    QueryPerformanceCounter(&TimerNow);
+#else
+   TimerNow.QuadPart = SDL_GetPerformanceCounter();
+#endif
    const unsigned long long cur_tick = (unsigned long long)(TimerNow.QuadPart - sTimerStart.QuadPart);
    return ((unsigned long long)TimerFreq.QuadPart < 100000000ull) ? (cur_tick * 1000000ull / (unsigned long long)TimerFreq.QuadPart)
       : (cur_tick * 1000ull / ((unsigned long long)TimerFreq.QuadPart / 1000ull));
@@ -103,7 +121,11 @@ U32 msec()
    if (sTimerInit == 0) return 0;
 
    LARGE_INTEGER TimerNow;
+#ifndef __STANDALONE__
    QueryPerformanceCounter(&TimerNow);
+#else
+   TimerNow.QuadPart = SDL_GetPerformanceCounter();
+#endif
    const LONGLONG cur_tick = TimerNow.QuadPart - sTimerStart.QuadPart;
    return (U32)((unsigned long long)cur_tick * 1000ull / (unsigned long long)TimerFreq.QuadPart);
 }
@@ -116,7 +138,11 @@ void uSleep(const unsigned long long u)
    if (sTimerInit == 0) return;
 
    LARGE_INTEGER TimerNow;
+#ifndef __STANDALONE__
    QueryPerformanceCounter(&TimerNow);
+#else
+   TimerNow.QuadPart = SDL_GetPerformanceCounter();
+#endif
    LARGE_INTEGER TimerEnd;
    TimerEnd.QuadPart = TimerNow.QuadPart + ((u * TimerFreq.QuadPart) / 1000000ull);
    const LONGLONG TwoMSTimerTicks = (2000 * TimerFreq.QuadPart) / 1000000ull;
@@ -128,7 +154,11 @@ void uSleep(const unsigned long long u)
       else
          YieldProcessor(); // was: "SwitchToThread() let other threads on same core run" //!! could also try Sleep(0) or directly use _mm_pause() instead of YieldProcessor() here
 
+#ifndef __STANDALONE__
       QueryPerformanceCounter(&TimerNow);
+#else
+      TimerNow.QuadPart = SDL_GetPerformanceCounter();
+#endif
    }
 }
 
@@ -140,14 +170,22 @@ void uOverSleep(const unsigned long long u)
    if (sTimerInit == 0) return;
 
    LARGE_INTEGER TimerNow;
+#ifndef __STANDALONE__
    QueryPerformanceCounter(&TimerNow);
+#else
+   TimerNow.QuadPart = SDL_GetPerformanceCounter();
+#endif
    LARGE_INTEGER TimerEnd;
    TimerEnd.QuadPart = TimerNow.QuadPart + ((u * TimerFreq.QuadPart) / 1000000ull);
 
    while (TimerNow.QuadPart < TimerEnd.QuadPart)
    {
       Sleep(1); // really pause thread for 1-2ms (depending on OS)
+#ifndef __STANDALONE__
       QueryPerformanceCounter(&TimerNow);
+#else
+      TimerNow.QuadPart = SDL_GetPerformanceCounter();
+#endif
    }
 }
 
@@ -332,31 +370,31 @@ int _tmain(int argc, _TCHAR* argv[])
     const double rlong = lon * (M_PI / 180.);
 
     const double _AngleOfDay = AngleOfDay(day, month, year);
-    std::cout << "Angle of day: " << _AngleOfDay << "\n";
+    std::cout << "Angle of day: " << _AngleOfDay << std::endl;
 
     const double _Declination = SolarDeclination(_AngleOfDay);
-    std::cout << "Declination (Delta): " << _Declination << "\n";
+    std::cout << "Declination (Delta): " << _Declination << std::endl;
 
     const double _EquationOfTime = EquationOfTimeRadian(_AngleOfDay) * (12. / M_PI);
-    std::cout << "Equation Of Time (Delta): " << _EquationOfTime << "\n";
+    std::cout << "Equation Of Time (Delta): " << _EquationOfTime << std::endl;
 
     const double _DayDurationHours = DayDurationHours(_Declination, rlat);
-    std::cout << "Day duration: " << _DayDurationHours << "\n";
+    std::cout << "Day duration: " << _DayDurationHours << std::endl;
 
     const double _OrbitalExcentricity = OrbitalExcentricity(_AngleOfDay);
-    std::cout << "Excentricity: " << _OrbitalExcentricity << "\n";
+    std::cout << "Excentricity: " << _OrbitalExcentricity << std::endl;
 
     const double _TheoreticRadiation = TheoreticRadiation(day, month, year, rlat);
-    std::cout << "Theoretical radiation: " << _TheoreticRadiation << "\n";
+    std::cout << "Theoretical radiation: " << _TheoreticRadiation << std::endl;
 
     const double _MaxTheoreticRadiation = MaxTheoreticRadiation(year, rlat);
-    std::cout << "Max./Year Theoretical radiation: " << _MaxTheoreticRadiation << "\n";
+    std::cout << "Max./Year Theoretical radiation: " << _MaxTheoreticRadiation << std::endl;
 
     const double _SunriseLocalTime = SunsetSunriseLocalTime(day, month, year, rlong, rlat, true);
-    std::cout << "Sunrise Local Time: " << _SunriseLocalTime << "\n";
+    std::cout << "Sunrise Local Time: " << _SunriseLocalTime << std::endl;
 
     const double _SunsetLocalTime = SunsetSunriseLocalTime(day, month, year, rlong, rlat, false);
-    std::cout << "Sunset Local Time: " << _SunsetLocalTime << "\n";
+    std::cout << "Sunset Local Time: " << _SunsetLocalTime << std::endl;
 
     return 0;
 }

@@ -385,6 +385,7 @@ void PinDirectSound::InitDirectSound(const HWND hwnd, const bool IsBackglass)
          DSidx = 0; // The default primary sound device
    }
 
+#ifndef __STANDALONE__
    // Create IDirectSound using the selected sound device
    HRESULT hr;
    if (FAILED(hr = DirectSoundCreate((DSidx != 0) ? DSads[DSidx]->guid : nullptr, &m_pDS, nullptr)))
@@ -460,6 +461,7 @@ void PinDirectSound::InitDirectSound(const HWND hwnd, const bool IsBackglass)
 	   m_pDSListener->SetPosition(0.0f, 0.0f, 0.0f, DS3D_IMMEDIATE);
    }
    SAFE_PINSOUND_RELEASE(pDSBPrimary);
+#endif
 
    //return S_OK;
 }

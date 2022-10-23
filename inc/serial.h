@@ -1,6 +1,8 @@
 #pragma once
 
+#ifndef __STANDALONE__
 #include <windows.h>
+#endif
 
 enum serial_parity
 {
@@ -55,18 +57,18 @@ class serial
 public:
    serial() : configured(false),fd(INVALID_HANDLE_VALUE) {}
 
-   bool open(const string &device);
+   bool open(const std::string &device);
    void close();
    void flush();
    serial_err setup(const serial_baud baud, const serial_bits bits, const serial_parity parity, const serial_stopbit stopbit);
-   serial_err write(const vector<char>& buffer);
-   serial_err read(vector<char>& buffer); // depends on the size of the incoming vector!
+   serial_err write(const std::vector<char>& buffer);
+   serial_err read(std::vector<char>& buffer); // depends on the size of the incoming vector!
    const char *get_setup_str();
    serial_err set_rts(bool enable);
    serial_err set_dtr(bool enable);
 
    // helper functions
-   static void list_ports(vector<string> &availablePorts);
+   static void list_ports(std::vector<std::string> &availablePorts);
 
    static serial_baud get_baud(const unsigned int baud);
    static unsigned int get_baud_int(const serial_baud baud);

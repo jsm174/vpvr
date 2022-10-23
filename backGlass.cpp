@@ -5,12 +5,17 @@
 #include "backGlass.h"
 #include "RenderDevice.h"
 #include "Shader.h"
+#ifndef __STANDALONE__
 #include "captureExt.h"
+#endif
+
+#ifdef ENABLE_VR
+ #include <fstream>
+#endif
 
 //#define WRITE_BACKGLASS_IMAGES
 #ifdef WRITE_BACKGLASS_IMAGES
  #include <iostream>
- #include <fstream>
 #endif
 
 //XML helpers
@@ -68,7 +73,7 @@ static size_t decode_base64(const char* const inData, char* const outData, const
       if (outPos + 2 < outSize) outData[outPos + 2] = (b3 << 6) | (b4);
       outPos += 3;
    }
-   return min(outPos - padding, outSize);
+   return min((outPos - padding), outSize);
 }
 
 //Actual Backglass code

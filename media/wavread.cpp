@@ -18,6 +18,7 @@ static HRESULT ReadMMIO(HMMIO hmmioIn, MMCKINFO* pckInRIFF, WAVEFORMATEX** ppwfx
    MMCKINFO        ckIn;           // chunk info. for general use.
    PCMWAVEFORMAT   pcmWaveFormat;  // Temp PCM structure to load in.
 
+#ifndef __STANDALONE__
    *ppwfxInfo = nullptr;
 
    if ((0 != mmioDescend(hmmioIn, pckInRIFF, nullptr, 0)))
@@ -84,6 +85,7 @@ static HRESULT ReadMMIO(HMMIO hmmioIn, MMCKINFO* pckInRIFF, WAVEFORMATEX** ppwfx
       *ppwfxInfo = nullptr;
       return E_FAIL;
    }
+#endif
 
    return S_OK;
 }
@@ -100,6 +102,7 @@ static HRESULT WaveOpenFile(const string& strFileName, HMMIO* phmmioIn, WAVEFORM
    HRESULT hr;
    HMMIO   hmmioIn;
 
+#ifndef __STANDALONE__
    if (nullptr == (hmmioIn = mmioOpen((LPSTR)strFileName.c_str(), nullptr, MMIO_ALLOCBUF | MMIO_READ)))
       return E_FAIL;
 
@@ -110,6 +113,7 @@ static HRESULT WaveOpenFile(const string& strFileName, HMMIO* phmmioIn, WAVEFORM
    }
 
    *phmmioIn = hmmioIn;
+#endif
 
    return S_OK;
 }
@@ -125,6 +129,7 @@ static HRESULT WaveOpenFile(const string& strFileName, HMMIO* phmmioIn, WAVEFORM
 static HRESULT WaveStartDataRead(const HMMIO* phmmioIn, MMCKINFO* pckIn,
    const MMCKINFO* pckInRIFF)
 {
+#ifndef __STANDALONE__
    // Seek to the data
    if (-1 == mmioSeek(*phmmioIn, pckInRIFF->dwDataOffset + (DWORD)sizeof(FOURCC),
       SEEK_SET))
@@ -134,6 +139,7 @@ static HRESULT WaveStartDataRead(const HMMIO* phmmioIn, MMCKINFO* pckIn,
    pckIn->ckid = mmioFOURCC('d', 'a', 't', 'a');
    if (0 != mmioDescend(*phmmioIn, pckIn, pckInRIFF, MMIO_FINDCHUNK))
       return E_FAIL;
+#endif
 
    return S_OK;
 }
@@ -150,6 +156,7 @@ static HRESULT WaveStartDataRead(const HMMIO* phmmioIn, MMCKINFO* pckIn,
 static HRESULT WaveReadFile(HMMIO hmmioIn, UINT cbRead, BYTE* pbDest,
    MMCKINFO* pckIn, UINT* cbActualRead)
 {
+#ifndef __STANDALONE__
    MMIOINFO mmioinfoIn;         // current status of <hmmioIn>
 
    *cbActualRead = 0;
@@ -184,6 +191,7 @@ static HRESULT WaveReadFile(HMMIO hmmioIn, UINT cbRead, BYTE* pbDest,
       return E_FAIL;
 
    *cbActualRead = cbDataIn;
+#endif
    return S_OK;
 }
 
@@ -251,6 +259,8 @@ HRESULT CWaveSoundRead::Read(UINT nSizeToRead, BYTE* pbData, UINT* pnSizeRead)
 //-----------------------------------------------------------------------------
 HRESULT CWaveSoundRead::Close()
 {
+#ifndef __STANDALONE__
    mmioClose(m_hmmioIn, 0);
+#endif
    return S_OK;
 }

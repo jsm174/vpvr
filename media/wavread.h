@@ -9,7 +9,9 @@
 
 #pragma once
 
+#ifndef __STANDALONE__
 #include <mmreg.h>
+#endif
 #include <mmsystem.h>
 
 

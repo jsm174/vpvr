@@ -81,8 +81,6 @@ inline int FindIndexOf(const vector<T>& v, const T& val)
 #define fTrue 1
 #define fFalse 0
 
-#define BOOL int
-
 typedef unsigned int    U32;
 typedef signed int      S32;
 typedef unsigned short  U16;
@@ -93,8 +91,8 @@ typedef unsigned char    U8;
 typedef signed char      S8;
 typedef float           F32;
 typedef double          F64;
-typedef unsigned _int64 U64;
-typedef _int64          S64;
+typedef uint64_t        U64;
+typedef int64_t         S64;
 
 #define MAXNAMEBUFFER 32
 #define MAXSTRING 1024 // usually used for paths,filenames,etc
@@ -188,7 +186,9 @@ public:
    WCHAR m_szbuffer[256];
 };
 
-#define M_PI 3.1415926535897932384626433832795
+#ifndef M_PI
+  #define M_PI 3.1415926535897932384626433832795
+#endif
 
 #define ANGTORAD(x) ((x) *(float)(M_PI/180.0))
 #define RADTOANG(x) ((x) *(float)(180.0/M_PI))
@@ -226,7 +226,7 @@ __forceinline __m128 sseHorizontalAdd(const __m128 &a) // could use dp instructi
 //
 
 #if __cplusplus >= 202002L
- #ifndef __APPLE__
+ #ifndef __clang__
   #include <bit>
   #define float_as_int(x) std::bit_cast<int>(x)
   #define float_as_uint(x) std::bit_cast<unsigned int>(x)
@@ -447,7 +447,6 @@ inline int WideCharToMultiByteNull(
         lpMultiByteStr[cbMultiByte-1] = '\0';
     return res;
 }
-
 
 // in case the incoming string length is >= the maximum wchar length of the outgoing one, MultiByteToWideChar will not produce a zero terminated string
 // this variant always makes sure that the outgoing string is zero terminated
